@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Breaker: Protocol (Cyber Arkanoid Roguelike)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff007f;
+            --neon-purple: #b500ff;
+            --neon-gold: #ffd700;
+            --bg-dark: #06070d;
+        }
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 127, 0.08) 0%, transparent 50%),
+                linear-gradient(0deg, rgba(8,10,18,0.95) 0%, rgba(5,6,11,1) 100%);
+            font-family: 'Rajdhani', sans-serif;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .cyber-panel {
+            background: rgba(13, 17, 28, 0.88);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            box-shadow: 0 0 18px rgba(0, 0, 0, 0.85), inset 0 0 12px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
+        .cyber-panel-pink {
+            background: rgba(24, 11, 22, 0.9);
+            border: 1px solid rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 22px rgba(255, 0, 127, 0.18), inset 0 0 15px rgba(255, 0, 127, 0.08);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.75);
+        }
+        .skill-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .skill-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.35);
+        }
+        .skill-btn:not(:disabled):active {
+            transform: translateY(1px);
+        }
+        .skill-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(70%);
+        }
+        .card-choice {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .card-choice:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 25px -5px rgba(0, 243, 255, 0.4);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0b10; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(255, 0, 127, 0.4); }
+            50% { border-color: rgba(255, 0, 127, 1); }
+        }
+        .boss-active-border {
+            animation: pulse-border 1.5s infinite;
+        }
+        .shake {
+            animation: shakeAnim 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shakeAnim {
+            10%, 90% { transform: translate3d(-3px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-4 select-none">
+
+    <!-- TOP BAR: Sector / Boss Status & Stats -->
+    <header class="max-w-6xl w-full mx-auto mb-2">
+        <div class="cyber-panel rounded-xl p-3 flex flex-col md:flex-row items-center justify-between gap-3" id="topStatusPanel">
+            <!-- Sector Title -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-400 font-orbitron font-bold text-lg shadow-[0_0_10px_rgba(0,243,255,0.3)]" id="stageBadge">
+                        1
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="font-orbitron font-extrabold text-base md:text-lg tracking-wider text-white uppercase" id="stageTitle">SEKTOR 1: ZAPORA DANYCH</h1>
+                            <span id="bossTag" class="hidden px-2 py-0.5 text-[10px] font-orbitron font-bold bg-pink-600 text-white rounded animate-pulse">BOSS RDZEŃ</span>
+                        </div>
+                        <p class="text-xs text-slate-400" id="stageSubtitle">Zniszcz wszystkie cegły w sektorze (Mysz lub Strzałki + Spacja)</p>
+                    </div>
+                </div>
+                <button id="soundToggleBtn" class="md:hidden p-2 rounded-lg bg-slate-800/80 text-cyan-400 border border-slate-700">
+                    <i class="fa-solid fa-volume-high" id="soundIconMobile"></i>
+                </button>
+            </div>
+
+            <!-- Sector / Boss HP Bar -->
+            <div class="w-full md:flex-1 max-w-md mx-auto">
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span id="progressLabel" class="text-cyan-400 uppercase tracking-wider font-orbitron">INTEGRALNOŚĆ CEGIEŁ</span>
+                    <span id="progressNumbers" class="font-orbitron text-white">100%</span>
+                </div>
+                <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 relative">
+                    <div id="stageProgressBar" class="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-full transition-all duration-200" style="width: 100%"></div>
+                </div>
+                <!-- Boss Attack Timer Bar -->
+                <div id="bossTimerContainer" class="hidden mt-1.5">
+                    <div class="flex justify-between text-[10px] text-pink-400 font-bold mb-0.5">
+                        <span id="bossAbilityName"><i class="fa-solid fa-skull-crossbones mr-1"></i>ATAK RDZENIA ZA:</span>
+                        <span id="bossTimerText">6.5s</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div id="bossAttackBar" class="h-full bg-pink-500 transition-all duration-100" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats & Quick Actions -->
+            <div class="flex items-center gap-4 w-full md:w-auto justify-around md:justify-end border-t md:border-t-0 border-slate-800 pt-2 md:pt-0">
+                <div class="text-center">
+                    <div class="text-[10px] text-rose-400 uppercase font-bold tracking-wider">PANCERZ (HP)</div>
+                    <div id="hpDisplay" class="font-orbitron font-bold text-sm md:text-base text-rose-400 flex items-center gap-1 justify-center"></div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">WYNIK</div>
+                    <div id="scoreDisplay" class="font-orbitron font-bold text-base md:text-lg text-white">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-amber-400 uppercase font-bold tracking-wider">ZŁOTO</div>
+                    <div class="font-orbitron font-bold text-base md:text-lg text-amber-400 flex items-center gap-1 justify-center">
+                        <i class="fa-solid fa-coins text-xs"></i> <span id="goldDisplay">15</span>
+                    </div>
+                </div>
+                <button id="pauseBtnDesktop" onclick="game.togglePause()" title="Pauza (P)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-pause" id="pauseIcon"></i>
+                </button>
+                <button id="soundToggleBtnDesktop" title="Dźwięk Wł/Wył" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-volume-high" id="soundIconDesktop"></i>
+                </button>
+                <button id="helpBtn" title="Instrukcja Bojowa" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-purple-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
+                <a href="https://niekapi.github.io/webgames/" title="Strona Główna (Wybór Gier)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <main class="max-w-6xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 items-start my-auto">
+
+        <!-- LEFT COLUMN: Energy (Mana), 4 Active Skill Slots & Ball Stats -->
+        <div class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
+            <div class="cyber-panel rounded-xl p-3 flex flex-col gap-2.5">
+                <div>
+                    <div class="flex justify-between items-center text-xs font-bold mb-1">
+                        <span class="font-orbitron text-cyan-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-cyan-400"></i> ENERGIA RDZENIA (MP)
+                        </span>
+                        <span id="manaText" class="font-orbitron text-white">25 / 100</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-cyan-900/60 p-0.5">
+                        <div id="manaBar" class="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(0,243,255,0.6)]" style="width: 25%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Rozbijaj cegły i zbieraj kapsuły, aby ładować energię modułów.</p>
+                </div>
+
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1">
+                    <span class="text-xs font-orbitron font-bold text-slate-300 uppercase tracking-wider">
+                        MODUŁY BOJOWE (1-4)
+                    </span>
+                    <span id="skillSlotsCountBadge" class="text-[10px] font-orbitron bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.2 rounded">0 / 4</span>
+                </div>
+
+                <!-- Dynamic 4 Skill Slots -->
+                <div id="skillsContainer" class="flex flex-col gap-2"></div>
+            </div>
+
+            <!-- PADDLE & BALL TELEMETRY -->
+            <div class="cyber-panel rounded-xl p-3">
+                <div class="text-xs font-orbitron font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-1 mb-2">
+                    PARAMETRY SYSTEMU
+                </div>
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Siła Uderzenia Kuli:</span>
+                        <span id="statDamage" class="font-orbitron font-bold text-rose-400">1 PKT</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Szerokość Paletki:</span>
+                        <span id="statPaddle" class="font-orbitron font-bold text-cyan-300">100%</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Szansa Krytyczna (2x):</span>
+                        <span id="statCrit" class="font-orbitron font-bold text-amber-300">5%</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Aktywne Kule:</span>
+                        <span id="statBalls" class="font-orbitron font-bold text-emerald-400">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER COLUMN: Breakout Arena Canvas -->
+        <div class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2">
+            <div id="boardWrapper" class="relative p-2 rounded-2xl cyber-panel flex flex-col items-center shadow-[0_0_35px_rgba(0,0,0,0.9)]">
+
+                <!-- Active Status Badges -->
+                <div id="statusBadgesContainer" class="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-1.5 pointer-events-none justify-center"></div>
+
+                <!-- Main Arena Canvas (480x580 px) -->
+                <canvas id="gameCanvas" width="480" height="580" class="bg-slate-950 rounded-xl border border-slate-800 shadow-inner block max-h-[68vh] w-auto aspect-[48/58] cursor-none"></canvas>
+
+                <!-- Pause Overlay -->
+                <div id="pauseOverlay" class="hidden absolute inset-2 bg-slate-950/85 backdrop-blur-sm rounded-xl z-20 flex flex-col items-center justify-center p-4 text-center">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-400 flex items-center justify-center text-amber-400 text-xl mb-3">
+                        <i class="fa-solid fa-pause"></i>
+                    </div>
+                    <h3 class="font-orbitron font-black text-xl text-white tracking-wider mb-1">PAUZA SYSTEMU</h3>
+                    <p class="text-xs text-slate-400 mb-4">Naciśnij <strong class="text-amber-400">P / ESC</strong> lub kliknij poniżej, aby wznowić</p>
+                    <button onclick="game.togglePause()" class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-orbitron font-bold text-xs uppercase transition">
+                        WZNÓW GRĘ
+                    </button>
+                </div>
+
+                <!-- Floating Combat Text Container -->
+                <div id="floatingTextContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+            </div>
+
+            <!-- Mobile / Touch Controls -->
+            <div class="grid grid-cols-3 gap-2 w-full max-w-[380px] mt-2 lg:hidden">
+                <button onpointerdown="game.keys.left = true" onpointerup="game.keys.left = false" onpointerleave="game.keys.left = false" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                </button>
+                <button onclick="game.launchBalls()" class="cyber-panel py-3 rounded-lg active:bg-amber-500/20 text-amber-400 font-orbitron font-bold text-xs flex items-center justify-center">
+                    START KULI
+                </button>
+                <button onpointerdown="game.keys.right = true" onpointerup="game.keys.right = false" onpointerleave="game.keys.right = false" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-right text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Relics Inventory & Brick Legend -->
+        <div class="lg:col-span-3 flex flex-col gap-3 order-3">
+            <!-- RELICS INVENTORY -->
+            <div class="cyber-panel rounded-xl p-3 flex flex-col flex-1 min-h-[240px]">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+                    <span class="text-xs font-orbitron font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gem"></i> AKTYWNE RELIKTY PASYWNE
+                    </span>
+                    <span id="relicCountBadge" class="text-xs font-orbitron bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">0</span>
+                </div>
+
+                <div id="relicsList" class="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-8">
+                        Oczyść pierwszy sektor, aby zainstalować swój pierwszy moduł bojowy lub relikt.
+                    </div>
+                </div>
+            </div>
+
+            <!-- BRICK & CAPSULE LEGEND -->
+            <div class="cyber-panel rounded-xl p-3">
+                <div class="text-xs font-orbitron font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-1 mb-2">
+                    CEGŁY I KAPSUŁY SPECJALNE
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-red-500/20 border border-red-500 flex items-center justify-center text-red-400 font-bold text-[11px]">💣</span>
+                        <div>
+                            <div class="font-bold text-red-300 leading-none">Wybuchowa</div>
+                            <div class="text-[10px] text-slate-400">Detonacja 3x3</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 font-bold text-[11px]">★</span>
+                        <div>
+                            <div class="font-bold text-amber-300 leading-none">Złoty Rdzeń</div>
+                            <div class="text-[10px] text-slate-400">+Złoto i PKT</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 font-bold text-[11px]">⚡</span>
+                        <div>
+                            <div class="font-bold text-cyan-300 leading-none">Plazmowa</div>
+                            <div class="text-[10px] text-slate-400">+18 Energii MP</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-purple-500/20 border border-purple-400 flex items-center justify-center text-purple-300 font-bold text-[11px]">💊</span>
+                        <div>
+                            <div class="font-bold text-purple-300 leading-none">Kapsuły</div>
+                            <div class="text-[10px] text-slate-400">Łap paletką!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER: Controls Legend -->
+    <footer class="max-w-6xl w-full mx-auto mt-2 hidden md:block">
+        <div class="cyber-panel rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400">
+            <div class="flex items-center gap-4">
+                <span><strong class="text-cyan-400 font-orbitron">MYSZ / STRZAŁKI / A-D:</strong> Ruch Paletki</span>
+                <span><strong class="text-cyan-400 font-orbitron">LPM / SPACJA:</strong> Wystrzelenie Kuli</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span><strong class="text-purple-400 font-orbitron">KLAWISZE 1 - 4:</strong> Użycie odblokowanych modułów bojowych</span>
+                <span><strong class="text-amber-400 font-orbitron">P / ESC:</strong> Pauza</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- DRAFT / ROGUELIKE UPGRADE MODAL -->
+    <div id="draftModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full cyber-panel rounded-2xl p-6 border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(0,243,255,0.2)] max-h-[95vh] overflow-y-auto">
+            <div class="text-center mb-5">
+                <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400 text-cyan-300 font-orbitron text-xs font-bold mb-2">
+                    SEKTOR OCZYSZCZONY!
+                </div>
+                <h2 class="font-orbitron font-black text-2xl md:text-3xl text-white tracking-wider uppercase neon-text-cyan">
+                    ZBROJOWNIA NEON BREAKER
+                </h2>
+                <p class="text-slate-400 text-sm mt-1">Odblokuj nowy moduł bojowy (sloty 1-4), ulepsz posiadany lub zainstaluj pasywny relikt.</p>
+            </div>
+
+            <!-- 3 Cards Container -->
+            <div id="draftCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"></div>
+
+            <!-- Shop Actions -->
+            <div class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-4">
+                <div class="flex items-center gap-2 text-amber-400 font-orbitron font-bold">
+                    <i class="fa-solid fa-coins"></i> Twoje Złoto: <span id="draftGoldDisplay">0</span> Zł
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button id="rerollBtn" onclick="game.rerollDraft()" class="skill-btn px-3.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-dice"></i> Przelosuj (<span id="rerollCostText">18</span> Zł)
+                    </button>
+                    <button id="buyManaBtn" onclick="game.buyFullMana()" class="skill-btn px-3.5 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400 text-cyan-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Pełna Energia (<span id="buyManaCostText">20</span> Zł)
+                    </button>
+                    <button id="buyHpBtn" onclick="game.buyRepairHp()" class="skill-btn px-3.5 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400 text-rose-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-heart-pulse"></i> Naprawa +1 HP (<span id="buyHpCostText">35</span> Zł)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- START / GAME OVER MODAL -->
+    <div id="startModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-lg w-full cyber-panel rounded-2xl p-6 md:p-8 text-center border-2 border-cyan-400/50 relative overflow-hidden">
+            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400 flex items-center justify-center mx-auto mb-4 text-cyan-400 text-3xl shadow-[0_0_25px_rgba(0,243,255,0.4)]">
+                <i class="fa-solid fa-meteor"></i>
+            </div>
+            <h1 id="modalMainTitle" class="font-orbitron font-black text-2xl md:text-4xl text-white tracking-wider uppercase neon-text-cyan mb-2">
+                NEON BREAKER
+            </h1>
+            <div id="modalSubBadge" class="inline-block px-3 py-0.5 rounded bg-pink-600/30 border border-pink-400 text-pink-300 font-orbitron text-xs font-bold mb-4">
+                CYBER ARKANOID ROGUELIKE
+            </div>
+
+            <p id="modalDescription" class="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
+                Krusz cyber-zapory, łap spadające kapsuły i odbijaj pociski! Zaczynasz bez umiejętności — odblokuj <strong>do 4 modułów bojowych</strong> (Działa Fotonowe, Multiball, Kule Plazmowe, Salwa Rakiet) i pokonaj <strong>6 strzelających Bossów AI</strong>!
+            </p>
+
+            <!-- Game Over Stats Summary -->
+            <div id="gameOverStats" class="hidden grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-6">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">SEKTOR</div>
+                    <div id="finalStageStat" class="font-orbitron font-bold text-lg text-cyan-400">1</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">WYNIK</div>
+                    <div id="finalScoreStat" class="font-orbitron font-bold text-lg text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">CEGŁY</div>
+                    <div id="finalBricksStat" class="font-orbitron font-bold text-lg text-pink-400">0</div>
+                </div>
+            </div>
+
+            <button onclick="game.startNewRun()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-black text-base tracking-wider uppercase shadow-[0_0_25px_rgba(0,243,255,0.5)] transition transform hover:scale-[1.02]">
+                <i class="fa-solid fa-play mr-2"></i> ROZPOCZNIJ PROTOKÓŁ
+            </button>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="helpModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-2xl w-full cyber-panel rounded-2xl p-6 border border-cyan-500/50 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                <h3 class="font-orbitron font-bold text-lg text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-book-journal-whills"></i> KOMPENDIUM NEON BREAKER
+                </h3>
+                <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-300">
+                <div>
+                    <h4 class="font-orbitron font-bold text-cyan-400 text-xs uppercase mb-1">1. Sterowanie i Fizyka Odbić</h4>
+                    <p>Poruszaj paletką za pomocą <strong>Myszy</strong> lub klawiszy <strong>Strzałek / A-D</strong>. Kliknij <strong>LPM</strong> lub naciśnij <strong>Spację</strong>, aby wystrzelić kulę. Miejsce uderzenia w paletkę pozwala kontrolować kąt odbicia!</p>
+                </div>
+                <div>
+                    <h4 class="font-orbitron font-bold text-emerald-400 text-xs uppercase mb-1">2. Odblokowywanie Modułów Bojowych (Sloty 1-4)</h4>
+                    <p>Zaczynasz z 4 pustymi slotami. Po każdym sektorze możesz wybrać nową umiejętność aktywną (<em>Działa Fotonowe, Multiball, Przebijające Kule Plazmowe, Salwa Rakiet, Bariera Dna, Impuls EMP, Pole Magnetyczne, Kula Supernowy</em>) lub ulepszyć już posiadaną do Poziomu 3.</p>
+                </div>
+                <div>
+                    <h4 class="font-orbitron font-bold text-pink-400 text-xs uppercase mb-1">3. Walki z Bossami (Co 3 Sektory)</h4>
+                    <p>Co 3 sektory na górze areny pojawia się <strong>Rdzeń Bossa AI</strong> chroniony przez eskortę cegieł. Boss porusza się i ostrzeliwuje Twoją paletkę pociskami! Możesz zadawać mu obrażenia uderzając w niego bezpośrednio kulami, laserami, rakietami oraz niszcząc jego cegły ochronne.</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="mt-6 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-orbitron text-xs font-bold">
+                ZAMKNIJ OKNO
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * SYSTEM DŹWIĘKOWY (Web Audio API)
+         */
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            toggle() {
+                this.enabled = !this.enabled;
+                const iconClass = this.enabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-slate-500';
+                document.getElementById('soundIconDesktop').className = iconClass;
+                document.getElementById('soundIconMobile').className = iconClass;
+            }
+            playTone(freq, type = 'sine', duration = 0.08, vol = 0.1, slideFreq = null) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (slideFreq) {
+                    osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                }
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+            paddleHit() { this.playTone(320, 'triangle', 0.07, 0.1, 440); }
+            brickHit() { this.playTone(480, 'sine', 0.05, 0.08, 580); }
+            brickBreak() { this.playTone(580, 'triangle', 0.11, 0.12, 860); }
+            explosion() { this.playTone(120, 'sawtooth', 0.25, 0.18, 35); }
+            laser() { this.playTone(720, 'sawtooth', 0.06, 0.06, 280); }
+            skill() { this.playTone(440, 'sine', 0.22, 0.14, 880); }
+            hurt() { this.playTone(150, 'sawtooth', 0.35, 0.2, 45); }
+            stageClear() {
+                [440, 554, 659, 880].forEach((f, idx) => {
+                    setTimeout(() => this.playTone(f, 'triangle', 0.2, 0.14), idx * 85);
+                });
+            }
+        }
+
+        const sfx = new SoundSystem();
+
+        /**
+         * KATALOG 8 UMIEJĘTNOŚCI BOJOWYCH (Gracz zaczyna z 0 i odblokowuje do 4 w slotach 1-4)
+         */
+        const SKILL_CATALOG = {
+            laser_cannons: {
+                id: 'laser_cannons',
+                name: 'Działa Fotonowe',
+                icon: 'fa-gun',
+                color: 'text-red-400',
+                bgBox: 'bg-red-500/10 border-red-500/40',
+                baseCost: 28,
+                baseCd: 11000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Przez ${3.5 + lvl * 1.5}s paletka automatycznie strzela podwójnym laserem`,
+                execute: (g, lvl) => {
+                    g.laserTimer = (3.5 + lvl * 1.5) * 1000;
+                    g.showFloatingText('🔫 DZIAŁA FOTONOWE AKTYWNE!', '#f87171');
+                    g.updateStatusBadges();
+                }
+            },
+            multiball: {
+                id: 'multiball',
+                name: 'Matryca Multiball',
+                icon: 'fa-braille',
+                color: 'text-cyan-400',
+                bgBox: 'bg-cyan-500/10 border-cyan-500/40',
+                baseCost: 34,
+                baseCd: 13000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Wystrzeliwuje +${lvl + 1} dodatkowe kule energetyczne z pozycji głównej kuli`,
+                execute: (g, lvl) => {
+                    g.launchBalls();
+                    const ref = g.balls[0] || { x: g.paddle.x + g.paddle.w / 2, y: g.paddle.y - 12, speed: g.baseBallSpeed };
+                    const count = lvl + 1;
+                    for (let i = 0; i < count; i++) {
+                        const angle = -Math.PI / 2 + (i - (count - 1) / 2) * 0.35;
+                        g.balls.push({
+                            x: ref.x,
+                            y: ref.y,
+                            vx: Math.cos(angle) * ref.speed,
+                            vy: Math.sin(angle) * ref.speed,
+                            speed: ref.speed,
+                            r: 6,
+                            stuck: false
+                        });
+                    }
+                    g.showFloatingText(`⚡ MULTIBALL (+${count} KULE)!`, '#00f3ff');
+                }
+            },
+            plasma_balls: {
+                id: 'plasma_balls',
+                name: 'Kule Plazmowe',
+                icon: 'fa-fire',
+                color: 'text-amber-400',
+                bgBox: 'bg-amber-500/10 border-amber-500/40',
+                baseCost: 38,
+                baseCd: 14000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Przez ${3 + lvl * 1.5}s kule przebijają cegły na wylot bez odbijania i zadają +1 obr.`,
+                execute: (g, lvl) => {
+                    g.plasmaTimer = (3 + lvl * 1.5) * 1000;
+                    g.showFloatingText('🔥 KULE PLAZMOWE (PRZEBIJANIE)!', '#fbbf24');
+                    g.updateStatusBadges();
+                }
+            },
+            missile_barrage: {
+                id: 'missile_barrage',
+                name: 'Salwa Rakietowa',
+                icon: 'fa-rocket',
+                color: 'text-orange-400',
+                bgBox: 'bg-orange-500/10 border-orange-500/40',
+                baseCost: 35,
+                baseCd: 10000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Wystrzeliwuje ${lvl * 2 + 2} rakiet wybuchowych prosto w cegły i Bossa`,
+                execute: (g, lvl) => {
+                    const count = lvl * 2 + 2;
+                    for (let i = 0; i < count; i++) {
+                        const tx = 40 + ((i + 0.5) / count) * (g.canvas.width - 80);
+                        g.playerProjectiles.push({
+                            x: g.paddle.x + (i / Math.max(1, count - 1)) * g.paddle.w,
+                            y: g.paddle.y - 6,
+                            vx: (tx - (g.paddle.x + g.paddle.w / 2)) * 0.4,
+                            vy: -420,
+                            dmg: 2,
+                            isMissile: true
+                        });
+                    }
+                    g.showFloatingText(`🚀 SALWA RAKIETOWA (${count}x)!`, '#fb923c');
+                }
+            },
+            floor_shield: {
+                id: 'floor_shield',
+                name: 'Bariera Dna',
+                icon: 'fa-shield-halved',
+                color: 'text-emerald-400',
+                bgBox: 'bg-emerald-500/10 border-emerald-500/40',
+                baseCost: 24,
+                baseCd: 11000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Tworzy na dole ekranu tarczę ratunkową odbijającą ${lvl + 1} spadające kule`,
+                execute: (g, lvl) => {
+                    g.floorShieldCharges = Math.min(8, g.floorShieldCharges + lvl + 1);
+                    g.showFloatingText(`🛡️ BARIERA DNA (+${lvl + 1} ODBIĆ)!`, '#10b981');
+                    g.updateStatusBadges();
+                }
+            },
+            emp_nova: {
+                id: 'emp_nova',
+                name: 'Impuls EMP',
+                icon: 'fa-burst',
+                color: 'text-purple-400',
+                bgBox: 'bg-purple-500/10 border-purple-500/40',
+                baseCost: 42,
+                baseCd: 15000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Zadaje ${lvl} PKT obrażeń wszystkim cegłom na mapie i niszczy pociski Bossa!`,
+                execute: (g, lvl) => {
+                    g.bossProjectiles = [];
+                    g.paddleSlowTimer = 0;
+                    g.paddleShrinkTimer = 0;
+                    for (let i = g.bricks.length - 1; i >= 0; i--) {
+                        g.damageBrick(i, lvl, false);
+                    }
+                    if (g.isBossStage && g.boss) {
+                        g.damageBoss(lvl * 35);
+                    }
+                    g.triggerBoardShake();
+                    g.showFloatingText('⚡ FALA UDERZENIOWA EMP!', '#c084fc');
+                    g.updateStatusBadges();
+                }
+            },
+            magnet_paddle: {
+                id: 'magnet_paddle',
+                name: 'Pole Magnetyczne',
+                icon: 'fa-magnet',
+                color: 'text-sky-400',
+                bgBox: 'bg-sky-500/10 border-sky-500/40',
+                baseCost: 25,
+                baseCd: 12000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Przez ${5 + lvl * 2.5}s zakrzywia lot spadających kul i kapsuł w stronę paletki`,
+                execute: (g, lvl) => {
+                    g.magnetTimer = (5 + lvl * 2.5) * 1000;
+                    g.showFloatingText('🧲 MAGNES PALETKI AKTYWNY!', '#38bdf8');
+                    g.updateStatusBadges();
+                }
+            },
+            supernova: {
+                id: 'supernova',
+                name: 'Ładunek Supernowy',
+                icon: 'fa-explosion',
+                color: 'text-pink-400',
+                bgBox: 'bg-pink-500/10 border-pink-500/40',
+                baseCost: 34,
+                baseCd: 11000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Kolejne ${lvl * 2 + 2} uderzenia kul w cegły wywołują eksplozję obszarową 3x3!`,
+                execute: (g, lvl) => {
+                    g.supernovaHits += lvl * 2 + 2;
+                    g.showFloatingText(`💥 SUPERNOWA (${g.supernovaHits} ŁADUNKÓW)!`, '#ff007f');
+                    g.updateStatusBadges();
+                }
+            }
+        };
+
+        /**
+         * PULA 12 PASYWNYCH RELIKTÓW ROGUELIKE
+         */
+        const RELIC_POOL = [
+            {
+                id: 'wide_paddle',
+                name: 'Poszerzenie Polowe',
+                icon: 'fa-arrows-left-right',
+                color: 'text-cyan-400',
+                maxStacks: 3,
+                desc: 'Zwiększa szerokość paletki o +18% na stałe.',
+                apply: (g) => { g.mods.paddleWidthMult += 0.18; g.updatePaddleSize(); }
+            },
+            {
+                id: 'heavy_ball',
+                name: 'Rdzeń Wolframowy',
+                icon: 'fa-bowling-ball',
+                color: 'text-rose-400',
+                maxStacks: 3,
+                desc: 'Zwiększa bazowe obrażenia zadawane przez kule o +1 PKT.',
+                apply: (g) => { g.mods.ballDamage += 1; }
+            },
+            {
+                id: 'crit_core',
+                name: 'Matryca Krytyczna',
+                icon: 'fa-crosshairs',
+                color: 'text-amber-400',
+                maxStacks: 4,
+                desc: '+15% szansy na trafienie krytyczne (podwójne obrażenia i mini-wybuch).',
+                apply: (g) => { g.mods.critChance += 0.15; }
+            },
+            {
+                id: 'mana_bounce',
+                name: 'Dynamo Kinetyczne',
+                icon: 'fa-bolt',
+                color: 'text-blue-400',
+                maxStacks: 3,
+                desc: 'Każde odbicie kuli od paletki daje +3 MP, a Maks. Energia rośnie o +20.',
+                apply: (g) => { g.mods.manaOnPaddleHit += 3; g.maxMana += 20; g.addMana(20); }
+            },
+            {
+                id: 'deflector',
+                name: 'Lustro Plazmowe',
+                icon: 'fa-shield-virus',
+                color: 'text-pink-400',
+                maxStacks: 1,
+                desc: 'Twoja paletka nie otrzymuje obrażeń od pocisków Bossa — zamiast tego odbija je z powrotem w Bossa!',
+                apply: (g) => { g.mods.reflectProjectiles = true; }
+            },
+            {
+                id: 'extra_start_ball',
+                name: 'Kloner Kwantowy',
+                icon: 'fa-clone',
+                color: 'text-emerald-400',
+                maxStacks: 2,
+                desc: 'Rozpoczynasz każdy sektor z +1 dodatkową kulą na paletce.',
+                apply: (g) => { g.mods.startingBalls += 1; }
+            },
+            {
+                id: 'capsule_drop',
+                name: 'Protokół Łupieżcy',
+                icon: 'fa-capsules',
+                color: 'text-purple-400',
+                maxStacks: 3,
+                desc: '+12% szansy na wypadnięcie kapsuły bonusowej ze zniszczonej cegły oraz +12 Złota teraz.',
+                apply: (g) => { g.mods.capsuleChance += 0.12; g.gold += 12; }
+            },
+            {
+                id: 'auto_barrier',
+                name: 'Generator Bariery',
+                icon: 'fa-layer-group',
+                color: 'text-teal-400',
+                maxStacks: 3,
+                desc: 'Na początku każdego sektora automatycznie otrzymujesz +1 ładunek Bariery Dna.',
+                apply: (g) => { g.mods.startFloorShield += 1; g.floorShieldCharges += 1; }
+            },
+            {
+                id: 'cooldown_opt',
+                name: 'Chłodzenie Cieczą',
+                icon: 'fa-snowflake',
+                color: 'text-sky-300',
+                maxStacks: 3,
+                desc: 'Skraca czas odnowienia wszystkich umiejętności o 15% i obniża ich koszt MP o 12%.',
+                apply: (g) => { g.mods.cooldownMult *= 0.85; g.mods.skillCostMult *= 0.88; }
+            },
+            {
+                id: 'hull_plating',
+                name: 'Pancerz Tytanowy',
+                icon: 'fa-heart-circle-plus',
+                color: 'text-rose-400',
+                maxStacks: 2,
+                desc: 'Zwiększa Maksymalny Pancerz (HP) o +1 i natychmiast naprawia 1 punkt HP.',
+                apply: (g) => { g.maxHp += 1; g.hp = Math.min(g.maxHp, g.hp + 1); }
+            },
+            {
+                id: 'boss_breaker',
+                name: 'Kruszyciel Rdzeni',
+                icon: 'fa-skull-crossbones',
+                color: 'text-orange-400',
+                maxStacks: 3,
+                desc: 'Zadajesz +30% więcej obrażeń wszystkim Bossom AI.',
+                apply: (g) => { g.mods.bossDamageMult += 0.30; }
+            },
+            {
+                id: 'gold_rush',
+                name: 'Algorytm Zysku',
+                icon: 'fa-coins',
+                color: 'text-yellow-400',
+                maxStacks: 3,
+                desc: 'Zwiększa zdobywane punkty o +25% i daje dodatkowe +2 Złota za każdą Złotą lub Wybuchową cegłę.',
+                apply: (g) => { g.mods.scoreMult += 0.25; g.mods.bonusBrickGold += 2; }
+            }
+        ];
+
+        /**
+         * GŁÓWNA KLASA GRY: NEON BREAKER ROGUELIKE
+         */
+        class NeonBreakerGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                this.keys = { left: false, right: false };
+                this.particles = [];
+                this.resetState();
+                this.bindEvents();
+                this.lastTime = 0;
+                requestAnimationFrame((t) => this.loop(t));
+            }
+
+            resetState() {
+                this.stage = 1;
+                this.score = 0;
+                this.gold = 15;
+                this.bricksDestroyedTotal = 0;
+
+                this.hp = 3;
+                this.maxHp = 3;
+                this.mana = 25;
+                this.maxMana = 100;
+
+                this.rerollCost = 18;
+                this.buyManaCost = 20;
+                this.buyHpCost = 35;
+
+                // Gracz zaczyna z 0 umiejętności (4 puste sloty)
+                this.unlockedSkills = [];
+
+                this.mods = {
+                    paddleWidthMult: 1.0,
+                    ballDamage: 1,
+                    critChance: 0.05,
+                    manaOnPaddleHit: 1,
+                    reflectProjectiles: false,
+                    startingBalls: 1,
+                    capsuleChance: 0.14,
+                    startFloorShield: 0,
+                    cooldownMult: 1.0,
+                    skillCostMult: 1.0,
+                    bossDamageMult: 1.0,
+                    scoreMult: 1.0,
+                    bonusBrickGold: 0
+                };
+
+                this.relics = [];
+                this.relicCounts = {};
+
+                this.basePaddleWidth = 92;
+                this.paddle = {
+                    x: 194,
+                    y: 540,
+                    w: 92,
+                    h: 14,
+                    speed: 440
+                };
+
+                this.baseBallSpeed = 340;
+                this.balls = [];
+                this.bricks = [];
+                this.capsules = [];
+                this.playerProjectiles = [];
+                this.bossProjectiles = [];
+
+                // Timery i ładunki
+                this.laserTimer = 0;
+                this.laserShotCooldown = 0;
+                this.plasmaTimer = 0;
+                this.magnetTimer = 0;
+                this.supernovaHits = 0;
+                this.floorShieldCharges = 0;
+                this.paddleSlowTimer = 0;
+                this.paddleShrinkTimer = 0;
+
+                // Boss
+                this.isBossStage = false;
+                this.boss = null;
+                this.initialStageHp = 100;
+
+                this.state = 'MENU'; // MENU, PLAYING, DRAFT, PAUSED, GAMEOVER
+                this.renderSkillSlots();
+            }
+
+            startNewRun() {
+                sfx.init();
+                this.resetState();
+                document.getElementById('startModal').classList.add('hidden');
+                document.getElementById('pauseOverlay').classList.add('hidden');
+                this.renderRelicsInventory();
+                this.renderSkillSlots();
+                this.setupStage(1);
+                this.state = 'PLAYING';
+                this.lastTime = performance.now();
+                this.updateUI();
+            }
+
+            togglePause() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    document.getElementById('pauseOverlay').classList.remove('hidden');
+                    document.getElementById('pauseIcon').className = 'fa-solid fa-play';
+                } else if (this.state === 'PAUSED') {
+                    this.state = 'PLAYING';
+                    document.getElementById('pauseOverlay').classList.add('hidden');
+                    document.getElementById('pauseIcon').className = 'fa-solid fa-pause';
+                    this.lastTime = performance.now();
+                }
+                this.updateUI();
+            }
+
+            updatePaddleSize() {
+                let mult = this.mods.paddleWidthMult;
+                if (this.paddleShrinkTimer > 0) mult *= 0.68;
+                this.paddle.w = Math.min(200, Math.max(54, Math.round(this.basePaddleWidth * mult)));
+                this.paddle.x = Math.max(8, Math.min(this.canvas.width - this.paddle.w - 8, this.paddle.x));
+            }
+
+            setupStage(stageNum) {
+                this.stage = stageNum;
+                this.capsules = [];
+                this.playerProjectiles = [];
+                this.bossProjectiles = [];
+                this.laserTimer = 0;
+                this.plasmaTimer = 0;
+                this.magnetTimer = 0;
+                this.paddleSlowTimer = 0;
+                this.paddleShrinkTimer = 0;
+                this.floorShieldCharges = Math.max(this.floorShieldCharges, this.mods.startFloorShield);
+
+                this.baseBallSpeed = Math.min(480, 335 + (stageNum - 1) * 12);
+                this.updatePaddleSize();
+                this.paddle.x = (this.canvas.width - this.paddle.w) / 2;
+
+                this.isBossStage = (stageNum % 3 === 0);
+                const topPanel = document.getElementById('topStatusPanel');
+                const bossTag = document.getElementById('bossTag');
+                const bossTimerContainer = document.getElementById('bossTimerContainer');
+
+                this.bricks = [];
+                const cols = 9;
+                const brickW = 46;
+                const brickH = 20;
+                const gap = 5;
+                const offsetX = (this.canvas.width - (cols * brickW + (cols - 1) * gap)) / 2;
+
+                if (this.isBossStage) {
+                    const bosses = [
+                        { id: 'aegis', name: 'AEGIS CORE', subtitle: 'Ostrzeliwuje paletkę salwami plazmy i stawia tarczę z cegieł!', interval: 6500, color: '#ff007f' },
+                        { id: 'hydra', name: 'HYDRA MATRIX', subtitle: 'Co atak regeneruje cegły ochronne i strzela potrójną wiązką!', interval: 7000, color: '#10b981' },
+                        { id: 'crusher', name: 'CRUSHER TITAN', subtitle: 'Spycha cegły w dół i zrzuca ciężkie bomby grawitacyjne!', interval: 7500, color: '#f97316' },
+                        { id: 'cryo', name: 'CRYO-WARDEN', subtitle: 'Wystrzeliwuje pociski zamrażające, które spowalniają paletkę!', interval: 6500, color: '#38bdf8' },
+                        { id: 'phantom', name: 'PHANTOM NEXUS', subtitle: 'Teleportuje się i zakrzywia tor lotu wszystkich kul!', interval: 6800, color: '#a855f7' },
+                        { id: 'omega', name: 'OMEGA OBLITERATOR', subtitle: 'Kurczy paletkę gracza i strzela gęstą zaporą ogniową!', interval: 6500, color: '#eab308' }
+                    ];
+                    const bDef = bosses[Math.floor((stageNum / 3 - 1) % bosses.length)];
+                    const maxBossHp = Math.round(220 * Math.pow(1.35, stageNum / 3 - 1));
+                    this.boss = {
+                        ...bDef,
+                        x: this.canvas.width / 2 - 55,
+                        y: 42,
+                        w: 110,
+                        h: 36,
+                        vx: 95,
+                        hp: maxBossHp,
+                        maxHp: maxBossHp,
+                        attackTimer: bDef.interval,
+                        attackInterval: bDef.interval
+                    };
+
+                    // Eskorta cegieł pod Bossem
+                    for (let r = 0; r < 3; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            if (r === 0 && (c === 3 || c === 4 || c === 5)) continue;
+                            this.bricks.push(this.createBrick(offsetX + c * (brickW + gap), 105 + r * (brickH + gap), brickW, brickH, r, stageNum));
+                        }
+                    }
+
+                    document.getElementById('stageTitle').textContent = `BOSS: ${this.boss.name}`;
+                    document.getElementById('stageSubtitle').textContent = this.boss.subtitle;
+                    document.getElementById('progressLabel').textContent = 'HP BOSSA AI';
+                    document.getElementById('stageProgressBar').className = 'h-full bg-gradient-to-r from-pink-600 via-red-500 to-amber-500 rounded-full transition-all duration-200';
+                    topPanel.classList.add('cyber-panel-pink', 'boss-active-border');
+                    bossTag.classList.remove('hidden');
+                    bossTimerContainer.classList.remove('hidden');
+                } else {
+                    this.boss = null;
+                    const rows = Math.min(8, 4 + Math.floor(stageNum / 2));
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            // Wzory geometryczne zależne od sektora
+                            if (stageNum % 2 === 0 && (c === 4 && r % 2 === 1)) continue;
+                            this.bricks.push(this.createBrick(offsetX + c * (brickW + gap), 55 + r * (brickH + gap), brickW, brickH, r, stageNum));
+                        }
+                    }
+                    this.initialStageHp = Math.max(1, this.bricks.length);
+
+                    document.getElementById('stageTitle').textContent = `SEKTOR ${stageNum}: ZAPORA DANYCH`;
+                    document.getElementById('stageSubtitle').textContent = 'Zniszcz wszystkie cegły w sektorze, aby przejść do Zbrojowni';
+                    document.getElementById('progressLabel').textContent = 'POZOSTAŁE CEGŁY';
+                    document.getElementById('stageProgressBar').className = 'h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-full transition-all duration-200';
+                    topPanel.classList.remove('cyber-panel-pink', 'boss-active-border');
+                    bossTag.classList.add('hidden');
+                    bossTimerContainer.classList.add('hidden');
+                }
+
+                this.spawnBallsOnPaddle(this.mods.startingBalls);
+                this.updateStatusBadges();
+                this.updateUI();
+            }
+
+            createBrick(x, y, w, h, rowIdx, stageNum) {
+                const colors = ['#00f3ff', '#38bdf8', '#a855f7', '#ec4899', '#f97316', '#10b981'];
+                const baseHp = rowIdx === 0 && stageNum >= 2 ? 2 + Math.floor(stageNum / 4) : 1 + Math.floor(stageNum / 5);
+                let mod = 'NORMAL';
+                const rnd = Math.random();
+                if (rnd < 0.09) mod = 'BOMB';
+                else if (rnd < 0.19) mod = 'GOLD';
+                else if (rnd < 0.30) mod = 'MANA';
+
+                return {
+                    x, y, w, h,
+                    hp: baseHp,
+                    maxHp: baseHp,
+                    color: mod === 'BOMB' ? '#ef4444' : (mod === 'GOLD' ? '#eab308' : colors[rowIdx % colors.length]),
+                    mod
+                };
+            }
+
+            spawnBallsOnPaddle(count = 1) {
+                this.balls = [];
+                for (let i = 0; i < count; i++) {
+                    this.balls.push({
+                        x: this.paddle.x + this.paddle.w / 2 + (i - (count - 1) / 2) * 14,
+                        y: this.paddle.y - 8,
+                        vx: 0,
+                        vy: 0,
+                        speed: this.baseBallSpeed,
+                        r: 6,
+                        stuck: true,
+                        offsetX: (i - (count - 1) / 2) * 14
+                    });
+                }
+            }
+
+            launchBalls() {
+                if (this.state !== 'PLAYING') return;
+                let launched = false;
+                this.balls.forEach((b, idx) => {
+                    if (b.stuck) {
+                        b.stuck = false;
+                        const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.4 + idx * 0.15;
+                        b.vx = Math.cos(angle) * b.speed;
+                        b.vy = Math.sin(angle) * b.speed;
+                        launched = true;
+                    }
+                });
+                if (launched) sfx.paddleHit();
+            }
+
+            damageBrick(index, dmg, allowChain = true) {
+                const b = this.bricks[index];
+                if (!b) return;
+
+                b.hp -= dmg;
+                this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 5);
+
+                if (b.hp <= 0) {
+                    this.bricks.splice(index, 1);
+                    this.bricksDestroyedTotal++;
+                    sfx.brickBreak();
+
+                    let pts = Math.round(45 * (1 + (this.stage - 1) * 0.1) * this.mods.scoreMult);
+                    this.addMana(2.5);
+
+                    if (b.mod === 'GOLD') {
+                        const kr = 5 + this.mods.bonusBrickGold;
+                        this.gold += kr;
+                        pts *= 2;
+                        this.showFloatingText(`★ +${kr} ZŁOTA`, '#facc15');
+                    } else if (b.mod === 'MANA') {
+                        this.addMana(18);
+                        this.showFloatingText('⚡ +18 ENERGII', '#00f3ff');
+                    } else if (b.mod === 'BOMB' && allowChain) {
+                        this.detonateArea(b.x + b.w / 2, b.y + b.h / 2, 75, 2);
+                        this.gold += this.mods.bonusBrickGold;
+                    }
+
+                    this.score += pts;
+
+                    // Na etapie z Bossem zniszczenie cegły eskorty zadaje też obrażenia Bossowi!
+                    if (this.isBossStage && this.boss) {
+                        this.damageBoss(12);
+                    }
+
+                    // Szansa na wypadnięcie kapsuły
+                    if (Math.random() < this.mods.capsuleChance) {
+                        const types = [
+                            { type: 'MANA', label: '+25 MP', color: '#00f3ff' },
+                            { type: 'GOLD', label: '+8 ZŁ', color: '#facc15' },
+                            { type: 'MULTI', label: '+KULA', color: '#10b981' },
+                            { type: 'SHIELD', label: '+TARCZA', color: '#c084fc' }
+                        ];
+                        const chosen = types[Math.floor(Math.random() * types.length)];
+                        this.capsules.push({
+                            x: b.x + b.w / 2,
+                            y: b.y + b.h / 2,
+                            vy: 145,
+                            ...chosen
+                        });
+                    }
+
+                    this.checkStageComplete();
+                } else {
+                    sfx.brickHit();
+                }
+            }
+
+            detonateArea(cx, cy, radius, dmg) {
+                sfx.explosion();
+                this.triggerBoardShake();
+                this.spawnParticles(cx, cy, '#ef4444', 24);
+                for (let i = this.bricks.length - 1; i >= 0; i--) {
+                    const br = this.bricks[i];
+                    const bx = br.x + br.w / 2;
+                    const by = br.y + br.h / 2;
+                    if (Math.hypot(bx - cx, by - cy) <= radius) {
+                        this.damageBrick(i, dmg, false);
+                    }
+                }
+            }
+
+            damageBoss(rawDmg) {
+                if (!this.boss || this.state !== 'PLAYING') return;
+                const dmg = Math.round(rawDmg * this.mods.bossDamageMult);
+                this.boss.hp = Math.max(0, this.boss.hp - dmg);
+                this.score += dmg * 2;
+                this.spawnParticles(this.boss.x + this.boss.w / 2, this.boss.y + this.boss.h / 2, '#ff007f', 8);
+                this.checkStageComplete();
+            }
+
+            checkStageComplete() {
+                if (this.state !== 'PLAYING') return;
+                if (this.isBossStage) {
+                    if (this.boss && this.boss.hp <= 0) {
+                        this.completeStage();
+                    }
+                } else {
+                    if (this.bricks.length === 0) {
+                        this.completeStage();
+                    }
+                }
+                this.updateUI();
+            }
+
+            /**
+             * ATAKI 6 BOSSÓW AI
+             */
+            triggerBossAttack() {
+                if (!this.isBossStage || !this.boss) return;
+                const bx = this.boss.x + this.boss.w / 2;
+                const by = this.boss.y + this.boss.h;
+                sfx.laser();
+
+                if (this.boss.id === 'aegis') {
+                    [-90, 0, 90].forEach(vx => {
+                        this.bossProjectiles.push({ x: bx, y: by, vx, vy: 230, color: '#ff007f', effect: 'DAMAGE' });
+                    });
+                    this.showFloatingText('⚠️ AEGIS: SALWA PLAZMOWA!', '#ff007f');
+                } else if (this.boss.id === 'hydra') {
+                    [-60, 60].forEach(vx => {
+                        this.bossProjectiles.push({ x: bx, y: by, vx, vy: 240, color: '#10b981', effect: 'DAMAGE' });
+                    });
+                    if (this.bricks.length < 18) {
+                        const rx = 35 + Math.floor(Math.random() * 7) * 51;
+                        this.bricks.push(this.createBrick(rx, 130, 46, 20, 1, this.stage));
+                    }
+                    this.showFloatingText('🐍 HYDRA: REGENERACJA ZAPORY!', '#10b981');
+                } else if (this.boss.id === 'crusher') {
+                    this.bricks.forEach(b => { b.y = Math.min(420, b.y + 18); });
+                    this.bossProjectiles.push({ x: bx, y: by, vx: 0, vy: 260, color: '#f97316', effect: 'DAMAGE' });
+                    this.triggerBoardShake();
+                    this.showFloatingText('⏬ CRUSHER: PRZESUNIĘCIE ZAPORY!', '#f97316');
+                } else if (this.boss.id === 'cryo') {
+                    [-50, 0, 50].forEach(vx => {
+                        this.bossProjectiles.push({ x: bx, y: by, vx, vy: 220, color: '#38bdf8', effect: 'SLOW' });
+                    });
+                    this.showFloatingText('❄️ CRYO: WIĄZKA ZAMRAŻAJĄCA!', '#38bdf8');
+                } else if (this.boss.id === 'phantom') {
+                    this.boss.x = 30 + Math.random() * (this.canvas.width - this.boss.w - 60);
+                    this.balls.forEach(b => {
+                        if (!b.stuck) b.vx = -b.vx;
+                    });
+                    this.bossProjectiles.push({ x: bx, y: by, vx: 0, vy: 250, color: '#a855f7', effect: 'DAMAGE' });
+                    this.showFloatingText('👻 PHANTOM: ZAKRZYWIENIE WEKTORA!', '#a855f7');
+                } else if (this.boss.id === 'omega') {
+                    this.paddleShrinkTimer = 5000;
+                    this.updatePaddleSize();
+                    [-110, -40, 40, 110].forEach(vx => {
+                        this.bossProjectiles.push({ x: bx, y: by, vx, vy: 240, color: '#eab308', effect: 'DAMAGE' });
+                    });
+                    this.showFloatingText('⚠️ OMEGA: KOMPRESJA PALETKI!', '#eab308');
+                }
+            }
+
+            /**
+             * UMIEJĘTNOŚCI I SKLEP
+             */
+            addMana(amount) {
+                this.mana = Math.min(this.maxMana, Math.max(0, this.mana + amount));
+                this.updateUI();
+            }
+
+            getSkillCost(def, level) {
+                const base = Math.max(14, def.baseCost - (level - 1) * 3);
+                return Math.max(10, Math.round(base * this.mods.skillCostMult));
+            }
+
+            getSkillCooldown(def, level) {
+                const base = Math.max(3500, def.baseCd - (level - 1) * 1000);
+                return Math.round(base * this.mods.cooldownMult);
+            }
+
+            useSkill(slotNumber) {
+                if (this.state !== 'PLAYING') return;
+                const slotObj = this.unlockedSkills[slotNumber - 1];
+                if (!slotObj) {
+                    this.showFloatingText(`SLOT [${slotNumber}] JEST PUSTY!`, '#64748b');
+                    return;
+                }
+                if (slotObj.cooldown > 0) {
+                    this.showFloatingText('MODUŁ SIĘ ODNAWIA!', '#fbbf24');
+                    return;
+                }
+                const def = SKILL_CATALOG[slotObj.id];
+                const cost = this.getSkillCost(def, slotObj.level);
+                if (this.mana < cost) {
+                    this.showFloatingText('BRAK ENERGII (MP)!', '#f43f5e');
+                    return;
+                }
+
+                this.mana -= cost;
+                slotObj.cooldown = this.getSkillCooldown(def, slotObj.level);
+                sfx.skill();
+                def.execute(this, slotObj.level);
+                this.updateUI();
+            }
+
+            renderSkillSlots() {
+                const container = document.getElementById('skillsContainer');
+                if (!container) return;
+                container.innerHTML = '';
+                document.getElementById('skillSlotsCountBadge').textContent = `${this.unlockedSkills.length} / 4`;
+
+                for (let i = 0; i < 4; i++) {
+                    const slotNum = i + 1;
+                    const slotObj = this.unlockedSkills[i];
+
+                    if (!slotObj) {
+                        const emptyEl = document.createElement('div');
+                        emptyEl.className = 'w-full bg-slate-950/60 border border-dashed border-slate-800 rounded-lg p-2.5 flex items-center justify-between opacity-65';
+                        emptyEl.innerHTML = `
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+                                    <i class="fa-solid fa-lock"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-900 text-slate-500 rounded border border-slate-800">[${slotNum}]</span>
+                                        <span class="font-bold text-xs text-slate-500 font-orbitron">PUSTY SLOT</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-600 leading-tight">Odblokuj w Zbrojowni po sektorze</div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(emptyEl);
+                    } else {
+                        const def = SKILL_CATALOG[slotObj.id];
+                        const cost = this.getSkillCost(def, slotObj.level);
+                        const btn = document.createElement('button');
+                        btn.id = `skillBtn${slotNum}`;
+                        btn.onclick = () => this.useSkill(slotNum);
+                        btn.className = 'skill-btn w-full text-left bg-slate-900/90 border border-slate-700/80 rounded-lg p-2.5 flex items-center justify-between group';
+                        btn.innerHTML = `
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg ${def.bgBox} border flex items-center justify-center ${def.color} font-bold text-base shrink-0">
+                                    <i class="fa-solid ${def.icon}"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-800 text-cyan-300 rounded border border-slate-600">[${slotNum}]</span>
+                                        <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">${def.name}</span>
+                                        <span class="text-[9px] font-orbitron px-1 py-0.1 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">Poz.${slotObj.level}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 leading-tight">${def.getDesc(slotObj.level)}</div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 ml-1">
+                                <span class="font-orbitron font-bold text-xs text-cyan-400 block" id="skillCost${slotNum}">${cost} MP</span>
+                                <span id="skillCd${slotNum}" class="hidden text-[10px] text-amber-400 font-orbitron font-bold"></span>
+                            </div>
+                        `;
+                        container.appendChild(btn);
+                    }
+                }
+            }
+
+            completeStage() {
+                this.state = 'DRAFT';
+                sfx.stageClear();
+
+                this.gold += this.isBossStage ? 32 : 16;
+                this.rerollCost = 18;
+
+                this.generateDraftCards();
+                this.updateDraftShopUI();
+                document.getElementById('draftModal').classList.remove('hidden');
+            }
+
+            updateDraftShopUI() {
+                document.getElementById('draftGoldDisplay').textContent = this.gold;
+                document.getElementById('rerollCostText').textContent = this.rerollCost;
+                document.getElementById('buyManaCostText').textContent = this.buyManaCost;
+                document.getElementById('buyHpCostText').textContent = this.buyHpCost;
+
+                document.getElementById('rerollBtn').disabled = (this.gold < this.rerollCost);
+                document.getElementById('buyManaBtn').disabled = (this.gold < this.buyManaCost || this.mana >= this.maxMana);
+                document.getElementById('buyHpBtn').disabled = (this.gold < this.buyHpCost || this.hp >= this.maxHp);
+            }
+
+            buildCandidateCards() {
+                const skillCards = [];
+                const ownedIds = this.unlockedSkills.map(s => s.id);
+
+                if (this.unlockedSkills.length < 4) {
+                    Object.values(SKILL_CATALOG).forEach(def => {
+                        if (!ownedIds.includes(def.id)) {
+                            skillCards.push({
+                                id: `new_${def.id}`,
+                                name: def.name,
+                                icon: def.icon,
+                                color: def.color,
+                                badgeText: `NOWY MODUŁ [SLOT ${this.unlockedSkills.length + 1}]`,
+                                badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                                desc: `${def.getDesc(1)}. Koszt: ${this.getSkillCost(def, 1)} MP, Odnowienie: ${(this.getSkillCooldown(def, 1)/1000).toFixed(1)}s.`,
+                                apply: (g) => {
+                                    g.unlockedSkills.push({ id: def.id, level: 1, cooldown: 0 });
+                                    g.renderSkillSlots();
+                                }
+                            });
+                        }
+                    });
+                }
+
+                this.unlockedSkills.forEach((slotObj, idx) => {
+                    const def = SKILL_CATALOG[slotObj.id];
+                    if (slotObj.level < def.maxLevel) {
+                        const nextLvl = slotObj.level + 1;
+                        skillCards.push({
+                            id: `upg_${def.id}`,
+                            name: `${def.name} (Poz. ${nextLvl})`,
+                            icon: def.icon,
+                            color: def.color,
+                            badgeText: `ULEPSZENIE SLOTU [${idx + 1}]`,
+                            badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                            desc: `Ulepsza moduł do Poz. ${nextLvl}: ${def.getDesc(nextLvl)} oraz obniża koszt i odnowienie.`,
+                            apply: (g) => {
+                                slotObj.level = nextLvl;
+                                g.renderSkillSlots();
+                            }
+                        });
+                    }
+                });
+
+                const relicCards = RELIC_POOL
+                    .filter(r => (this.relicCounts[r.id] || 0) < (r.maxStacks || 99))
+                    .map(r => {
+                        const cur = this.relicCounts[r.id] || 0;
+                        return {
+                            id: r.id,
+                            name: r.name,
+                            icon: r.icon,
+                            color: r.color,
+                            badgeText: `RELIKT PASYWNY (${cur + 1}/${r.maxStacks})`,
+                            badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+                            desc: r.desc,
+                            apply: (g) => {
+                                r.apply(g);
+                                g.relicCounts[r.id] = (g.relicCounts[r.id] || 0) + 1;
+                                if (!g.relics.find(x => x.id === r.id)) {
+                                    g.relics.push(r);
+                                }
+                                g.renderRelicsInventory();
+                                g.renderSkillSlots();
+                            }
+                        };
+                    });
+
+                return { skillCards, relicCards };
+            }
+
+            generateDraftCards() {
+                const container = document.getElementById('draftCardsContainer');
+                container.innerHTML = '';
+
+                const { skillCards, relicCards } = this.buildCandidateCards();
+                const shuffledSkills = [...skillCards].sort(() => 0.5 - Math.random());
+                const shuffledRelics = [...relicCards].sort(() => 0.5 - Math.random());
+
+                const choices = [];
+                if (this.unlockedSkills.length === 0 && shuffledSkills.length >= 2) {
+                    choices.push(shuffledSkills.pop(), shuffledSkills.pop());
+                } else if (shuffledSkills.length > 0) {
+                    choices.push(shuffledSkills.pop());
+                }
+
+                const remaining = [...shuffledSkills, ...shuffledRelics].sort(() => 0.5 - Math.random());
+                while (choices.length < 3 && remaining.length > 0) {
+                    choices.push(remaining.pop());
+                }
+
+                this.currentDraftChoices = choices;
+
+                this.currentDraftChoices.forEach((cardData, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card-choice cyber-panel rounded-xl p-5 flex flex-col justify-between cursor-pointer border border-slate-700 hover:border-cyan-400 bg-slate-900/90';
+                    card.onclick = () => this.selectDraftCard(index);
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center ${cardData.color} text-2xl shadow-md shrink-0">
+                                    <i class="fa-solid ${cardData.icon}"></i>
+                                </div>
+                                <span class="text-[10px] font-orbitron px-2 py-0.5 rounded border font-bold text-right ${cardData.badgeClass}">
+                                    ${cardData.badgeText}
+                                </span>
+                            </div>
+                            <h3 class="font-orbitron font-bold text-base text-white mb-2">${cardData.name}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${cardData.desc}</p>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-orbitron text-cyan-400 font-bold">
+                            <span>ZAINSTALUJ</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            selectDraftCard(index) {
+                const chosen = this.currentDraftChoices[index];
+                if (!chosen) return;
+                chosen.apply(this);
+
+                document.getElementById('draftModal').classList.add('hidden');
+                this.setupStage(this.stage + 1);
+                this.state = 'PLAYING';
+                this.lastTime = performance.now();
+                this.updateUI();
+            }
+
+            rerollDraft() {
+                if (this.gold < this.rerollCost) return;
+                this.gold -= this.rerollCost;
+                this.rerollCost += 10;
+                sfx.paddleHit();
+                this.generateDraftCards();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            buyFullMana() {
+                if (this.gold < this.buyManaCost || this.mana >= this.maxMana) return;
+                this.gold -= this.buyManaCost;
+                this.buyManaCost += 8;
+                this.mana = this.maxMana;
+                sfx.skill();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            buyRepairHp() {
+                if (this.gold < this.buyHpCost || this.hp >= this.maxHp) return;
+                this.gold -= this.buyHpCost;
+                this.buyHpCost += 15;
+                this.hp = Math.min(this.maxHp, this.hp + 1);
+                sfx.skill();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            renderRelicsInventory() {
+                const list = document.getElementById('relicsList');
+                const totalCount = Object.values(this.relicCounts).reduce((a, b) => a + b, 0);
+                document.getElementById('relicCountBadge').textContent = totalCount;
+                list.innerHTML = '';
+
+                if (this.relics.length === 0) {
+                    list.innerHTML = `
+                        <div class="text-xs text-slate-500 italic text-center py-8">
+                            Oczyść pierwszy sektor, aby zainstalować swój pierwszy moduł bojowy lub relikt.
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.relics.forEach(r => {
+                    const count = this.relicCounts[r.id] || 1;
+                    const item = document.createElement('div');
+                    item.className = 'bg-slate-900/90 border border-slate-800 rounded-lg p-2 flex items-start gap-2.5';
+                    item.innerHTML = `
+                        <div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center ${r.color} shrink-0 text-sm mt-0.5">
+                            <i class="fa-solid ${r.icon}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <div class="font-bold text-xs text-white leading-tight">${r.name}</div>
+                                ${count > 1 ? `<span class="text-[10px] font-orbitron px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">x${count}</span>` : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400 leading-tight mt-0.5">${r.desc}</div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            triggerGameOver() {
+                this.state = 'GAMEOVER';
+                sfx.hurt();
+                document.getElementById('modalMainTitle').textContent = 'PANCERZ ZNISZCZONY';
+                document.getElementById('modalSubBadge').textContent = 'KONIEC PROTOKOŁU (GAME OVER)';
+                document.getElementById('modalDescription').textContent = 'Twoja paletka straciła całą integralność. Przeanalizuj konfigurację modułów i rozpocznij nowy run!';
+                document.getElementById('finalStageStat').textContent = this.stage;
+                document.getElementById('finalScoreStat').textContent = this.score.toLocaleString('pl-PL');
+                document.getElementById('finalBricksStat').textContent = this.bricksDestroyedTotal;
+                document.getElementById('gameOverStats').classList.remove('hidden');
+                document.getElementById('startModal').classList.remove('hidden');
+            }
+
+            /**
+             * EFEKTY WIZUALNE I UI
+             */
+            spawnParticles(x, y, color, count = 10) {
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x, y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        size: Math.random() * 4 + 2,
+                        color,
+                        alpha: 1.0
+                    });
+                }
+            }
+
+            showFloatingText(text, color = '#00f3ff') {
+                const container = document.getElementById('floatingTextContainer');
+                const el = document.createElement('div');
+                el.className = 'font-orbitron font-extrabold text-xs md:text-sm tracking-wider uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-700 whitespace-nowrap drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]';
+                el.style.color = color;
+                el.style.top = '48%';
+                el.textContent = text;
+                container.appendChild(el);
+
+                requestAnimationFrame(() => {
+                    el.style.top = '24%';
+                    el.style.opacity = '0';
+                });
+                setTimeout(() => el.remove(), 750);
+            }
+
+            triggerBoardShake() {
+                const wrapper = document.getElementById('boardWrapper');
+                wrapper.classList.remove('shake');
+                void wrapper.offsetWidth;
+                wrapper.classList.add('shake');
+            }
+
+            updateStatusBadges() {
+                const container = document.getElementById('statusBadgesContainer');
+                container.innerHTML = '';
+
+                if (this.floorShieldCharges > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-400 text-emerald-300 font-orbitron text-[10px] font-bold">🛡️ BARIERA DNA x${this.floorShieldCharges}</span>`;
+                }
+                if (this.laserTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-red-950/90 border border-red-400 text-red-300 font-orbitron text-[10px] font-bold">🔫 LASERY ${(this.laserTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.plasmaTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-orbitron text-[10px] font-bold">🔥 PLAZMA ${(this.plasmaTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.magnetTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-sky-950/90 border border-sky-400 text-sky-300 font-orbitron text-[10px] font-bold">🧲 MAGNES ${(this.magnetTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.supernovaHits > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-pink-950/90 border border-pink-400 text-pink-300 font-orbitron text-[10px] font-bold">💥 SUPERNOWA x${this.supernovaHits}</span>`;
+                }
+                if (this.paddleSlowTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-blue-950/90 border border-blue-400 text-blue-300 font-orbitron text-[10px] font-bold">❄️ SPOWOLNIENIE ${(this.paddleSlowTimer/1000).toFixed(1)}s</span>`;
+                }
+            }
+
+            updateUI() {
+                document.getElementById('stageBadge').textContent = this.stage;
+                document.getElementById('scoreDisplay').textContent = this.score.toLocaleString('pl-PL');
+                document.getElementById('goldDisplay').textContent = this.gold;
+
+                // HP
+                const hpContainer = document.getElementById('hpDisplay');
+                hpContainer.innerHTML = '';
+                for (let i = 0; i < this.maxHp; i++) {
+                    hpContainer.innerHTML += `<i class="fa-solid fa-heart ${i < this.hp ? 'text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.8)]' : 'text-slate-700'}"></i>`;
+                }
+
+                // Pasek postępu etapu / HP Bossa
+                if (this.isBossStage && this.boss) {
+                    const pct = Math.max(0, Math.floor((this.boss.hp / this.boss.maxHp) * 100));
+                    document.getElementById('stageProgressBar').style.width = `${pct}%`;
+                    document.getElementById('progressNumbers').textContent = `${this.boss.hp} / ${this.boss.maxHp} HP`;
+                } else {
+                    const pct = Math.max(0, Math.floor((this.bricks.length / this.initialStageHp) * 100));
+                    document.getElementById('stageProgressBar').style.width = `${pct}%`;
+                    document.getElementById('progressNumbers').textContent = `${this.bricks.length} CEGIEŁ`;
+                }
+
+                // Mana
+                const manaPct = Math.min(100, Math.floor((this.mana / this.maxMana) * 100));
+                document.getElementById('manaBar').style.width = `${manaPct}%`;
+                document.getElementById('manaText').textContent = `${Math.floor(this.mana)} / ${this.maxMana}`;
+
+                // Parametry boczne
+                document.getElementById('statDamage').textContent = `${this.mods.ballDamage + (this.plasmaTimer > 0 ? 1 : 0)} PKT`;
+                document.getElementById('statPaddle').textContent = `${Math.round(this.mods.paddleWidthMult * 100)}%`;
+                document.getElementById('statCrit').textContent = `${Math.round(this.mods.critChance * 100)}%`;
+                document.getElementById('statBalls').textContent = `${this.balls.length}`;
+
+                // Sloty umiejętności
+                for (let i = 0; i < this.unlockedSkills.length; i++) {
+                    const slotNum = i + 1;
+                    const slotObj = this.unlockedSkills[i];
+                    const def = SKILL_CATALOG[slotObj.id];
+                    const cost = this.getSkillCost(def, slotObj.level);
+
+                    const btn = document.getElementById(`skillBtn${slotNum}`);
+                    const costEl = document.getElementById(`skillCost${slotNum}`);
+                    const cdEl = document.getElementById(`skillCd${slotNum}`);
+                    if (!btn || !costEl || !cdEl) continue;
+
+                    costEl.textContent = `${cost} MP`;
+                    if (slotObj.cooldown > 0) {
+                        cdEl.textContent = `${(slotObj.cooldown / 1000).toFixed(1)}s`;
+                        cdEl.classList.remove('hidden');
+                    } else {
+                        cdEl.classList.add('hidden');
+                    }
+                    btn.disabled = (this.mana < cost || slotObj.cooldown > 0 || this.state !== 'PLAYING');
+                }
+            }
+
+            /**
+             * AKTUALIZACJA FIZYKI ARENY
+             */
+            updateArena(dt) {
+                const dtSec = dt / 1000;
+
+                // 1. Ruch klawiszami paletki
+                let pSpeed = this.paddle.speed;
+                if (this.paddleSlowTimer > 0) pSpeed *= 0.55;
+                if (this.keys.left) {
+                    this.paddle.x = Math.max(8, this.paddle.x - pSpeed * dtSec);
+                }
+                if (this.keys.right) {
+                    this.paddle.x = Math.min(this.canvas.width - this.paddle.w - 8, this.paddle.x + pSpeed * dtSec);
+                }
+
+                // 2. Automatyczne strzały z Dział Fotonowych
+                if (this.laserTimer > 0) {
+                    this.laserShotCooldown -= dt;
+                    if (this.laserShotCooldown <= 0) {
+                        this.laserShotCooldown = 280;
+                        sfx.laser();
+                        this.playerProjectiles.push(
+                            { x: this.paddle.x + 8, y: this.paddle.y - 4, vx: 0, vy: -520, dmg: 1, isMissile: false },
+                            { x: this.paddle.x + this.paddle.w - 8, y: this.paddle.y - 4, vx: 0, vy: -520, dmg: 1, isMissile: false }
+                        );
+                    }
+                }
+
+                // 3. Ruch Bossa
+                if (this.isBossStage && this.boss) {
+                    this.boss.x += this.boss.vx * dtSec;
+                    if (this.boss.x <= 20) {
+                        this.boss.x = 20;
+                        this.boss.vx = Math.abs(this.boss.vx);
+                    } else if (this.boss.x + this.boss.w >= this.canvas.width - 20) {
+                        this.boss.x = this.canvas.width - this.boss.w - 20;
+                        this.boss.vx = -Math.abs(this.boss.vx);
+                    }
+
+                    this.boss.attackTimer -= dt;
+                    const pct = Math.max(0, (this.boss.attackTimer / this.boss.attackInterval) * 100);
+                    document.getElementById('bossAttackBar').style.width = `${pct}%`;
+                    document.getElementById('bossTimerText').textContent = `${Math.max(0, this.boss.attackTimer / 1000).toFixed(1)}s`;
+                    if (this.boss.attackTimer <= 0) {
+                        this.boss.attackTimer = this.boss.attackInterval;
+                        this.triggerBossAttack();
+                    }
+                }
+
+                // 4. Pociski gracza (Lasery i Rakiety)
+                for (let i = this.playerProjectiles.length - 1; i >= 0; i--) {
+                    const pr = this.playerProjectiles[i];
+                    pr.x += pr.vx * dtSec;
+                    pr.y += pr.vy * dtSec;
+                    if (pr.y < 0) {
+                        this.playerProjectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Trafienie w Bossa
+                    if (this.isBossStage && this.boss &&
+                        pr.x >= this.boss.x && pr.x <= this.boss.x + this.boss.w &&
+                        pr.y >= this.boss.y && pr.y <= this.boss.y + this.boss.h) {
+                        this.damageBoss(pr.isMissile ? 28 : 12);
+                        this.playerProjectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Trafienie w Cegłę
+                    let hitBrick = false;
+                    for (let j = this.bricks.length - 1; j >= 0; j--) {
+                        const br = this.bricks[j];
+                        if (pr.x >= br.x && pr.x <= br.x + br.w && pr.y >= br.y && pr.y <= br.y + br.h) {
+                            if (pr.isMissile) {
+                                this.detonateArea(pr.x, pr.y, 55, pr.dmg);
+                            } else {
+                                this.damageBrick(j, pr.dmg, true);
+                            }
+                            hitBrick = true;
+                            break;
+                        }
+                    }
+                    if (hitBrick) {
+                        this.playerProjectiles.splice(i, 1);
+                    }
+                }
+
+                // 5. Pociski Bossa
+                for (let i = this.bossProjectiles.length - 1; i >= 0; i--) {
+                    const bp = this.bossProjectiles[i];
+                    bp.x += bp.vx * dtSec;
+                    bp.y += bp.vy * dtSec;
+
+                    if (bp.y > this.canvas.height) {
+                        this.bossProjectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Kolizja z paletką
+                    if (bp.y + 6 >= this.paddle.y && bp.y - 6 <= this.paddle.y + this.paddle.h &&
+                        bp.x >= this.paddle.x && bp.x <= this.paddle.x + this.paddle.w) {
+                        this.bossProjectiles.splice(i, 1);
+
+                        if (this.mods.reflectProjectiles) {
+                            this.playerProjectiles.push({
+                                x: bp.x, y: this.paddle.y - 6,
+                                vx: 0, vy: -480, dmg: 2, isMissile: true
+                            });
+                            sfx.paddleHit();
+                            this.showFloatingText('🛡️ POCISK ODBITY W BOSSA!', '#00f3ff');
+                        } else if (bp.effect === 'SLOW') {
+                            this.paddleSlowTimer = 4000;
+                            sfx.hurt();
+                            this.showFloatingText('❄️ PALETKA ZAMROŻONA (4s)!', '#38bdf8');
+                            this.updateStatusBadges();
+                        } else {
+                            this.loseIntegrity('💥 TRAFIENIE POCISKIEM BOSSA!');
+                        }
+                    }
+                }
+
+                // 6. Spadające Kapsuły
+                for (let i = this.capsules.length - 1; i >= 0; i--) {
+                    const cap = this.capsules[i];
+                    if (this.magnetTimer > 0) {
+                        const targetX = this.paddle.x + this.paddle.w / 2;
+                        cap.x += Math.sign(targetX - cap.x) * 140 * dtSec;
+                    }
+                    cap.y += cap.vy * dtSec;
+
+                    if (cap.y >= this.paddle.y - 6 && cap.y <= this.paddle.y + this.paddle.h + 6 &&
+                        cap.x >= this.paddle.x - 8 && cap.x <= this.paddle.x + this.paddle.w + 8) {
+                        sfx.skill();
+                        if (cap.type === 'MANA') this.addMana(25);
+                        else if (cap.type === 'GOLD') this.gold += 8;
+                        else if (cap.type === 'SHIELD') {
+                            this.floorShieldCharges++;
+                            this.updateStatusBadges();
+                        } else if (cap.type === 'MULTI') {
+                            SKILL_CATALOG.multiball.execute(this, 1);
+                        }
+                        this.showFloatingText(`💊 KAPSUŁA: ${cap.label}`, cap.color);
+                        this.capsules.splice(i, 1);
+                        this.updateUI();
+                    } else if (cap.y > this.canvas.height) {
+                        this.capsules.splice(i, 1);
+                    }
+                }
+
+                // 7. Ruch i Kolizje Kul
+                for (let i = this.balls.length - 1; i >= 0; i--) {
+                    const b = this.balls[i];
+                    if (b.stuck) {
+                        b.x = this.paddle.x + this.paddle.w / 2 + (b.offsetX || 0);
+                        b.y = this.paddle.y - b.r - 2;
+                        continue;
+                    }
+
+                    // Przyciąganie magnetyczne spadających kul do środka paletki
+                    if (this.magnetTimer > 0 && b.vy > 0 && b.y > 320) {
+                        const targetX = this.paddle.x + this.paddle.w / 2;
+                        b.vx += Math.sign(targetX - b.x) * 260 * dtSec;
+                        const curSpd = Math.hypot(b.vx, b.vy);
+                        if (curSpd > 0) {
+                            b.vx = (b.vx / curSpd) * b.speed;
+                            b.vy = (b.vy / curSpd) * b.speed;
+                        }
+                    }
+
+                    b.x += b.vx * dtSec;
+                    b.y += b.vy * dtSec;
+
+                    // Ściany boczne i sufit
+                    if (b.x - b.r <= 0) {
+                        b.x = b.r;
+                        b.vx = Math.abs(b.vx);
+                    } else if (b.x + b.r >= this.canvas.width) {
+                        b.x = this.canvas.width - b.r;
+                        b.vx = -Math.abs(b.vx);
+                    }
+                    if (b.y - b.r <= 0) {
+                        b.y = b.r;
+                        b.vy = Math.abs(b.vy);
+                    }
+
+                    // Zabezpieczenie przed poziomym zablokowaniem kuli
+                    if (Math.abs(b.vy) < 85) {
+                        b.vy = (b.vy >= 0 ? 1 : -1) * 95;
+                    }
+
+                    // Odbicie od Paletki
+                    if (b.vy > 0 &&
+                        b.y + b.r >= this.paddle.y && b.y - b.r <= this.paddle.y + this.paddle.h &&
+                        b.x + b.r >= this.paddle.x && b.x - b.r <= this.paddle.x + this.paddle.w) {
+                        const hitPos = ((b.x - (this.paddle.x + this.paddle.w / 2)) / (this.paddle.w / 2));
+                        const clampedHit = Math.max(-0.85, Math.min(0.85, hitPos));
+                        const bounceAngle = clampedHit * (Math.PI / 3); // max 60 stopni od pionu
+
+                        b.vx = Math.sin(bounceAngle) * b.speed;
+                        b.vy = -Math.cos(bounceAngle) * b.speed;
+                        b.y = this.paddle.y - b.r - 1;
+                        sfx.paddleHit();
+                        this.addMana(this.mods.manaOnPaddleHit);
+                    }
+
+                    // Kolizja z Bossem
+                    if (this.isBossStage && this.boss) {
+                        const boss = this.boss;
+                        if (b.x + b.r >= boss.x && b.x - b.r <= boss.x + boss.w &&
+                            b.y + b.r >= boss.y && b.y - b.r <= boss.y + boss.h) {
+                            b.vy = -b.vy;
+                            b.y = b.vy > 0 ? boss.y + boss.h + b.r : boss.y - b.r;
+                            this.damageBoss((this.mods.ballDamage + (this.plasmaTimer > 0 ? 1 : 0)) * 22);
+                            sfx.brickBreak();
+                        }
+                    }
+
+                    // Kolizja z Cegłami
+                    for (let j = this.bricks.length - 1; j >= 0; j--) {
+                        const br = this.bricks[j];
+                        if (b.x + b.r >= br.x && b.x - b.r <= br.x + br.w &&
+                            b.y + b.r >= br.y && b.y - b.r <= br.y + br.h) {
+
+                            // Obliczenie obrażeń
+                            let dmg = this.mods.ballDamage + (this.plasmaTimer > 0 ? 1 : 0);
+                            const isCrit = Math.random() < this.mods.critChance;
+                            if (isCrit) dmg *= 2;
+
+                            if (this.supernovaHits > 0) {
+                                this.supernovaHits--;
+                                this.detonateArea(b.x, b.y, 70, dmg + 1);
+                                this.updateStatusBadges();
+                            } else {
+                                this.damageBrick(j, dmg, true);
+                            }
+
+                            // Jeśli Kule Plazmowe NIE są aktywne, odbij kulę
+                            if (this.plasmaTimer <= 0) {
+                                const overlapLeft = (b.x + b.r) - br.x;
+                                const overlapRight = (br.x + br.w) - (b.x - b.r);
+                                const overlapTop = (b.y + b.r) - br.y;
+                                const overlapBottom = (br.y + br.h) - (b.y - b.r);
+                                const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                                if (minOverlap === overlapLeft || minOverlap === overlapRight) {
+                                    b.vx = -b.vx;
+                                } else {
+                                    b.vy = -b.vy;
+                                }
+                            }
+                            break;
+                        }
+                    }
+
+                    // Spadek kuli poniżej dna
+                    if (b.y - b.r > this.canvas.height) {
+                        if (this.floorShieldCharges > 0) {
+                            this.floorShieldCharges--;
+                            b.y = this.canvas.height - b.r - 6;
+                            b.vy = -Math.abs(b.vy);
+                            sfx.paddleHit();
+                            this.showFloatingText('🛡️ BARIERA URATOWAŁA KULĘ!', '#10b981');
+                            this.updateStatusBadges();
+                        } else {
+                            this.balls.splice(i, 1);
+                            if (this.balls.length === 0 && this.state === 'PLAYING') {
+                                this.loseIntegrity('💀 UTRACONO WSZYSTKIE KULE!');
+                                if (this.state === 'PLAYING') {
+                                    this.spawnBallsOnPaddle(1);
+                                }
+                            }
+                            this.updateUI();
+                        }
+                    }
+                }
+            }
+
+            loseIntegrity(reason) {
+                sfx.hurt();
+                this.hp--;
+                this.triggerBoardShake();
+                this.showFloatingText(reason, '#f43f5e');
+                if (this.hp <= 0) {
+                    this.triggerGameOver();
+                }
+                this.updateUI();
+            }
+
+            /**
+             * RYSOWANIE ARENY
+             */
+            draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Siatka tła
+                ctx.strokeStyle = 'rgba(30, 41, 59, 0.35)';
+                ctx.lineWidth = 1;
+                for (let x = 0; x <= this.canvas.width; x += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, this.canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= this.canvas.height; y += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(this.canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Bariera Dna
+                if (this.floorShieldCharges > 0) {
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(0, this.canvas.height - 3);
+                    ctx.lineTo(this.canvas.width, this.canvas.height - 3);
+                    ctx.stroke();
+                }
+
+                // Boss AI
+                if (this.isBossStage && this.boss) {
+                    const boss = this.boss;
+                    ctx.save();
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.strokeStyle = boss.color;
+                    ctx.lineWidth = 2.5;
+                    ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+                    ctx.strokeRect(boss.x, boss.y, boss.w, boss.h);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 11px Orbitron, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(boss.name, boss.x + boss.w / 2, boss.y + boss.h / 2);
+                    ctx.restore();
+                }
+
+                // Cegły
+                for (let br of this.bricks) {
+                    ctx.save();
+                    ctx.fillStyle = br.color;
+                    ctx.fillRect(br.x, br.y, br.w, br.h);
+
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                    ctx.lineWidth = 1.2;
+                    ctx.strokeRect(br.x + 1.5, br.y + 1.5, br.w - 3, br.h - 3);
+
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = 'bold 11px Orbitron, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    let label = br.hp > 1 ? `${br.hp}` : '';
+                    if (br.mod === 'BOMB') label = '💣';
+                    else if (br.mod === 'GOLD') label = '★';
+                    else if (br.mod === 'MANA') label = '⚡';
+                    if (label) {
+                        ctx.fillText(label, br.x + br.w / 2, br.y + br.h / 2 + 1);
+                    }
+                    ctx.restore();
+                }
+
+                // Kapsuły
+                for (let cap of this.capsules) {
+                    ctx.save();
+                    ctx.fillStyle = cap.color;
+                    ctx.beginPath();
+                    ctx.roundRect(cap.x - 20, cap.y - 8, 40, 16, 8);
+                    ctx.fill();
+                    ctx.fillStyle = '#090d16';
+                    ctx.font = 'bold 9px Orbitron, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(cap.label, cap.x, cap.y + 1);
+                    ctx.restore();
+                }
+
+                // Pociski Gracza i Bossa
+                for (let pr of this.playerProjectiles) {
+                    ctx.fillStyle = pr.isMissile ? '#fb923c' : '#f43f5e';
+                    ctx.fillRect(pr.x - 2, pr.y - 6, 4, 12);
+                }
+                for (let bp of this.bossProjectiles) {
+                    ctx.fillStyle = bp.color;
+                    ctx.beginPath();
+                    ctx.arc(bp.x, bp.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Paletka Gracza
+                ctx.save();
+                ctx.fillStyle = this.paddleSlowTimer > 0 ? '#38bdf8' : '#00f3ff';
+                ctx.beginPath();
+                ctx.roundRect(this.paddle.x, this.paddle.y, this.paddle.w, this.paddle.h, 6);
+                ctx.fill();
+                if (this.laserTimer > 0) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(this.paddle.x + 4, this.paddle.y - 5, 6, 5);
+                    ctx.fillRect(this.paddle.x + this.paddle.w - 10, this.paddle.y - 5, 6, 5);
+                }
+                ctx.restore();
+
+                // Kule
+                for (let b of this.balls) {
+                    ctx.save();
+                    ctx.fillStyle = this.plasmaTimer > 0 ? '#fbbf24' : (this.supernovaHits > 0 ? '#ff007f' : '#ffffff');
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Cząsteczki
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const pt = this.particles[i];
+                    pt.x += pt.vx;
+                    pt.y += pt.vy;
+                    pt.alpha -= 0.03;
+                    if (pt.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    } else {
+                        ctx.save();
+                        ctx.globalAlpha = pt.alpha;
+                        ctx.fillStyle = pt.color;
+                        ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+                        ctx.restore();
+                    }
+                }
+            }
+
+            /**
+             * PĘTLA GRY
+             */
+            loop(time = 0) {
+                const dt = Math.min(50, time - this.lastTime);
+                this.lastTime = time;
+
+                if (this.state === 'PLAYING') {
+                    let uiNeedsRefresh = false;
+
+                    this.unlockedSkills.forEach(s => {
+                        if (s.cooldown > 0) {
+                            const prev = Math.ceil(s.cooldown / 100);
+                            s.cooldown = Math.max(0, s.cooldown - dt);
+                            if (Math.ceil(s.cooldown / 100) !== prev) uiNeedsRefresh = true;
+                        }
+                    });
+
+                    const tick = (prop, onEnd = null) => {
+                        if (this[prop] > 0) {
+                            const prev = Math.floor(this[prop] / 200);
+                            this[prop] = Math.max(0, this[prop] - dt);
+                            if (this[prop] <= 0 && onEnd) onEnd();
+                            if (Math.floor(this[prop] / 200) !== prev || this[prop] <= 0) {
+                                this.updateStatusBadges();
+                                uiNeedsRefresh = true;
+                            }
+                        }
+                    };
+                    tick('laserTimer');
+                    tick('plasmaTimer');
+                    tick('magnetTimer');
+                    tick('paddleSlowTimer');
+                    tick('paddleShrinkTimer', () => this.updatePaddleSize());
+
+                    this.updateArena(dt);
+                    if (uiNeedsRefresh) this.updateUI();
+                }
+
+                this.draw();
+                requestAnimationFrame((t) => this.loop(t));
+            }
+
+            bindEvents() {
+                // Ruch myszą po planszy
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    const rect = this.canvas.getBoundingClientRect();
+                    const scaleX = this.canvas.width / rect.width;
+                    const mouseX = (e.clientX - rect.left) * scaleX;
+                    this.paddle.x = Math.max(8, Math.min(this.canvas.width - this.paddle.w - 8, mouseX - this.paddle.w / 2));
+                });
+
+                this.canvas.addEventListener('mousedown', () => {
+                    if (this.state === 'PLAYING') this.launchBalls();
+                });
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'KeyP' || e.code === 'Escape') {
+                        const helpModal = document.getElementById('helpModal');
+                        if (!helpModal.classList.contains('hidden')) {
+                            helpModal.classList.add('hidden');
+                            return;
+                        }
+                        if (this.state === 'PLAYING' || this.state === 'PAUSED') {
+                            e.preventDefault();
+                            this.togglePause();
+                            return;
+                        }
+                    }
+
+                    if (this.state !== 'PLAYING') return;
+
+                    switch (e.code) {
+                        case 'ArrowLeft':
+                        case 'KeyA':
+                            this.keys.left = true;
+                            break;
+                        case 'ArrowRight':
+                        case 'KeyD':
+                            this.keys.right = true;
+                            break;
+                        case 'Space':
+                            e.preventDefault();
+                            this.launchBalls();
+                            break;
+                        case 'Digit1':
+                            this.useSkill(1);
+                            break;
+                        case 'Digit2':
+                            this.useSkill(2);
+                            break;
+                        case 'Digit3':
+                            this.useSkill(3);
+                            break;
+                        case 'Digit4':
+                            this.useSkill(4);
+                            break;
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = false;
+                    if (e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = false;
+                });
+
+                document.getElementById('soundToggleBtnDesktop').addEventListener('click', () => sfx.toggle());
+                document.getElementById('soundToggleBtn').addEventListener('click', () => sfx.toggle());
+                document.getElementById('helpBtn').addEventListener('click', () => {
+                    document.getElementById('helpModal').classList.remove('hidden');
+                });
+            }
+        }
+
+        let game;
+        window.onload = () => {
+            game = new NeonBreakerGame();
+        };
+    </script>
+</body>
+</html>
