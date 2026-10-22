@@ -90,44 +90,82 @@
             30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
             40%, 60% { transform: translate3d(6px, 0, 0); }
         }
+        #gameCanvas {
+            aspect-ratio: 480 / 580;
+            width: 100%;
+            height: auto;
+            max-height: 46dvh;
+            max-width: min(100%, calc(46dvh * 480 / 580));
+            touch-action: none;
+        }
+        @media (min-width: 640px) {
+            #gameCanvas {
+                max-height: 56dvh;
+                max-width: min(100%, calc(56dvh * 480 / 580));
+            }
+        }
+        @media (min-width: 1024px) {
+            #gameCanvas {
+                max-height: 68vh;
+                max-width: min(100%, calc(68vh * 480 / 580));
+            }
+        }
+        .touch-none-select {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-2 md:p-4 select-none">
+<body class="min-h-[100dvh] flex flex-col justify-between p-1.5 sm:p-2 md:p-4 select-none">
 
     <!-- TOP BAR: Sector / Boss Status & Stats -->
-    <header class="max-w-6xl w-full mx-auto mb-2">
-        <div class="cyber-panel rounded-xl p-3 flex flex-col md:flex-row items-center justify-between gap-3" id="topStatusPanel">
-            <!-- Sector Title -->
-            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-400 font-orbitron font-bold text-lg shadow-[0_0_10px_rgba(0,243,255,0.3)]" id="stageBadge">
+    <header class="max-w-6xl w-full mx-auto mb-1.5 md:mb-2">
+        <div class="cyber-panel rounded-xl p-2 md:p-3 flex flex-col md:flex-row items-center justify-between gap-1.5 md:gap-3" id="topStatusPanel">
+            <!-- Sector Title & Mobile Quick Actions -->
+            <div class="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-7 h-7 md:w-10 md:h-10 rounded-lg bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-400 font-orbitron font-bold text-sm md:text-lg shadow-[0_0_10px_rgba(0,243,255,0.3)] shrink-0" id="stageBadge">
                         1
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h1 class="font-orbitron font-extrabold text-base md:text-lg tracking-wider text-white uppercase" id="stageTitle">SEKTOR 1: ZAPORA DANYCH</h1>
-                            <span id="bossTag" class="hidden px-2 py-0.5 text-[10px] font-orbitron font-bold bg-pink-600 text-white rounded animate-pulse">BOSS RDZEŃ</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h1 class="font-orbitron font-extrabold text-xs sm:text-sm md:text-lg tracking-wider text-white uppercase truncate" id="stageTitle">SEKTOR 1: ZAPORA DANYCH</h1>
+                            <span id="bossTag" class="hidden px-1.5 py-0.5 text-[9px] md:text-[10px] font-orbitron font-bold bg-pink-600 text-white rounded animate-pulse shrink-0">BOSS RDZEŃ</span>
                         </div>
-                        <p class="text-xs text-slate-400" id="stageSubtitle">Zniszcz wszystkie cegły w sektorze (Mysz lub Strzałki + Spacja)</p>
+                        <p class="hidden sm:block text-xs text-slate-400 truncate" id="stageSubtitle">Zniszcz wszystkie cegły w sektorze (Mysz, Dotyk lub Strzałki)</p>
                     </div>
                 </div>
-                <button id="soundToggleBtn" class="md:hidden p-2 rounded-lg bg-slate-800/80 text-cyan-400 border border-slate-700">
-                    <i class="fa-solid fa-volume-high" id="soundIconMobile"></i>
-                </button>
+                <!-- Mobile Action Buttons in Top Row -->
+                <div class="flex md:hidden items-center gap-1 shrink-0">
+                    <button onclick="game.togglePause()" title="Pauza" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800/90 text-amber-400 border border-slate-700 text-xs">
+                        <i class="fa-solid fa-pause" id="pauseIconMobile"></i>
+                    </button>
+                    <button id="soundToggleBtn" title="Dźwięk" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800/90 text-cyan-400 border border-slate-700 text-xs">
+                        <i class="fa-solid fa-volume-high" id="soundIconMobile"></i>
+                    </button>
+                    <button id="helpBtnMobile" onclick="document.getElementById('helpModal').classList.remove('hidden')" title="Instrukcja" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800/90 text-purple-400 border border-slate-700 text-xs">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </button>
+                    <a href="https://niekapi.github.io/webgames/" title="Strona Główna" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800/90 text-emerald-400 border border-slate-700 text-xs">
+                        <i class="fa-solid fa-house"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- Sector / Boss HP Bar -->
             <div class="w-full md:flex-1 max-w-md mx-auto">
-                <div class="flex justify-between text-xs font-bold mb-1">
+                <div class="flex justify-between text-[10px] md:text-xs font-bold mb-0.5 md:mb-1">
                     <span id="progressLabel" class="text-cyan-400 uppercase tracking-wider font-orbitron">INTEGRALNOŚĆ CEGIEŁ</span>
                     <span id="progressNumbers" class="font-orbitron text-white">100%</span>
                 </div>
-                <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 relative">
+                <div class="w-full h-2.5 md:h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 relative">
                     <div id="stageProgressBar" class="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-full transition-all duration-200" style="width: 100%"></div>
                 </div>
                 <!-- Boss Attack Timer Bar -->
-                <div id="bossTimerContainer" class="hidden mt-1.5">
-                    <div class="flex justify-between text-[10px] text-pink-400 font-bold mb-0.5">
+                <div id="bossTimerContainer" class="hidden mt-1">
+                    <div class="flex justify-between text-[9px] md:text-[10px] text-pink-400 font-bold mb-0.5">
                         <span id="bossAbilityName"><i class="fa-solid fa-skull-crossbones mr-1"></i>ATAK RDZENIA ZA:</span>
                         <span id="bossTimerText">6.5s</span>
                     </div>
@@ -138,31 +176,31 @@
             </div>
 
             <!-- Stats & Quick Actions -->
-            <div class="flex items-center gap-4 w-full md:w-auto justify-around md:justify-end border-t md:border-t-0 border-slate-800 pt-2 md:pt-0">
-                <div class="text-center">
-                    <div class="text-[10px] text-rose-400 uppercase font-bold tracking-wider">PANCERZ (HP)</div>
-                    <div id="hpDisplay" class="font-orbitron font-bold text-sm md:text-base text-rose-400 flex items-center gap-1 justify-center"></div>
+            <div class="flex items-center gap-3 md:gap-4 w-full md:w-auto justify-around md:justify-end border-t md:border-t-0 border-slate-800/80 pt-1 md:pt-0">
+                <div class="flex md:block items-center gap-1.5 text-center">
+                    <div class="text-[9px] md:text-[10px] text-rose-400 uppercase font-bold tracking-wider">HP</div>
+                    <div id="hpDisplay" class="font-orbitron font-bold text-xs md:text-base text-rose-400 flex items-center gap-1 justify-center"></div>
                 </div>
-                <div class="text-center">
-                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">WYNIK</div>
-                    <div id="scoreDisplay" class="font-orbitron font-bold text-base md:text-lg text-white">0</div>
+                <div class="flex md:block items-center gap-1.5 text-center">
+                    <div class="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-wider">WYNIK</div>
+                    <div id="scoreDisplay" class="font-orbitron font-bold text-xs md:text-lg text-white">0</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-[10px] text-amber-400 uppercase font-bold tracking-wider">ZŁOTO</div>
-                    <div class="font-orbitron font-bold text-base md:text-lg text-amber-400 flex items-center gap-1 justify-center">
-                        <i class="fa-solid fa-coins text-xs"></i> <span id="goldDisplay">15</span>
+                <div class="flex md:block items-center gap-1.5 text-center">
+                    <div class="text-[9px] md:text-[10px] text-amber-400 uppercase font-bold tracking-wider">ZŁOTO</div>
+                    <div class="font-orbitron font-bold text-xs md:text-lg text-amber-400 flex items-center gap-1 justify-center">
+                        <i class="fa-solid fa-coins text-[10px] md:text-xs"></i> <span id="goldDisplay">15</span>
                     </div>
                 </div>
-                <button id="pauseBtnDesktop" onclick="game.togglePause()" title="Pauza (P)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700 transition">
+                <button id="pauseBtnDesktop" onclick="game.togglePause()" title="Pauza (P)" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700 transition">
                     <i class="fa-solid fa-pause" id="pauseIcon"></i>
                 </button>
                 <button id="soundToggleBtnDesktop" title="Dźwięk Wł/Wył" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition">
                     <i class="fa-solid fa-volume-high" id="soundIconDesktop"></i>
                 </button>
-                <button id="helpBtn" title="Instrukcja Bojowa" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-purple-400 border border-slate-700 transition">
+                <button id="helpBtn" title="Instrukcja Bojowa" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-purple-400 border border-slate-700 transition">
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
-                <a href="https://niekapi.github.io/webgames/" title="Strona Główna (Wybór Gier)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition">
+                <a href="https://niekapi.github.io/webgames/" title="Strona Główna (Wybór Gier)" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition">
                     <i class="fa-solid fa-house"></i>
                 </a>
             </div>
@@ -170,10 +208,10 @@
     </header>
 
     <!-- MAIN GAME AREA -->
-    <main class="max-w-6xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 items-start my-auto">
+    <main class="max-w-6xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-3 items-start my-auto">
 
-        <!-- LEFT COLUMN: Energy (Mana), 4 Active Skill Slots & Ball Stats -->
-        <div class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
+        <!-- LEFT COLUMN (Desktop): Energy (Mana), 4 Active Skill Slots & Ball Stats -->
+        <div class="hidden lg:flex lg:col-span-3 flex-col gap-3 order-2 lg:order-1">
             <div class="cyber-panel rounded-xl p-3 flex flex-col gap-2.5">
                 <div>
                     <div class="flex justify-between items-center text-xs font-bold mb-1">
@@ -195,7 +233,7 @@
                     <span id="skillSlotsCountBadge" class="text-[10px] font-orbitron bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.2 rounded">0 / 4</span>
                 </div>
 
-                <!-- Dynamic 4 Skill Slots -->
+                <!-- Dynamic 4 Skill Slots (Desktop) -->
                 <div id="skillsContainer" class="flex flex-col gap-2"></div>
             </div>
 
@@ -225,15 +263,15 @@
             </div>
         </div>
 
-        <!-- CENTER COLUMN: Breakout Arena Canvas -->
-        <div class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2">
-            <div id="boardWrapper" class="relative p-2 rounded-2xl cyber-panel flex flex-col items-center shadow-[0_0_35px_rgba(0,0,0,0.9)]">
+        <!-- CENTER COLUMN: Breakout Arena Canvas + Mobile Integrated Combat HUD -->
+        <div class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2 w-full">
+            <div id="boardWrapper" class="relative p-1.5 sm:p-2 rounded-2xl cyber-panel flex flex-col items-center shadow-[0_0_35px_rgba(0,0,0,0.9)] w-full max-w-[496px]">
 
                 <!-- Active Status Badges -->
-                <div id="statusBadgesContainer" class="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-1.5 pointer-events-none justify-center"></div>
+                <div id="statusBadgesContainer" class="absolute top-3 left-3 right-3 z-10 flex flex-wrap gap-1 pointer-events-none justify-center"></div>
 
                 <!-- Main Arena Canvas (480x580 px) -->
-                <canvas id="gameCanvas" width="480" height="580" class="bg-slate-950 rounded-xl border border-slate-800 shadow-inner block max-h-[68vh] w-auto aspect-[48/58] cursor-none"></canvas>
+                <canvas id="gameCanvas" width="480" height="580" class="bg-slate-950 rounded-xl border border-slate-800 shadow-inner block cursor-none"></canvas>
 
                 <!-- Pause Overlay -->
                 <div id="pauseOverlay" class="hidden absolute inset-2 bg-slate-950/85 backdrop-blur-sm rounded-xl z-20 flex flex-col items-center justify-center p-4 text-center">
@@ -251,24 +289,51 @@
                 <div id="floatingTextContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
             </div>
 
-            <!-- Mobile / Touch Controls -->
-            <div class="grid grid-cols-3 gap-2 w-full max-w-[380px] mt-2 lg:hidden">
-                <button onpointerdown="game.keys.left = true" onpointerup="game.keys.left = false" onpointerleave="game.keys.left = false" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
-                    <i class="fa-solid fa-arrow-left text-lg"></i>
-                </button>
-                <button onclick="game.launchBalls()" class="cyber-panel py-3 rounded-lg active:bg-amber-500/20 text-amber-400 font-orbitron font-bold text-xs flex items-center justify-center">
-                    START KULI
-                </button>
-                <button onpointerdown="game.keys.right = true" onpointerup="game.keys.right = false" onpointerleave="game.keys.right = false" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
-                    <i class="fa-solid fa-arrow-right text-lg"></i>
-                </button>
+            <!-- MOBILE COMBAT HUD: Mana + 4 Quick Skills + Touch Controls (Visible right below Arena on Mobile/Tablet) -->
+            <div class="w-full max-w-[496px] mt-1.5 flex flex-col gap-1.5 lg:hidden">
+                <!-- Compact Mobile Mana & Quick Telemetry Bar -->
+                <div class="cyber-panel rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="font-orbitron font-bold text-[10px] text-cyan-400 shrink-0 flex items-center gap-1">
+                            <i class="fa-solid fa-bolt"></i> MP
+                        </span>
+                        <div class="flex-1 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-cyan-900/60 p-0.5">
+                            <div id="manaBarMobile" class="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all duration-300" style="width: 25%"></div>
+                        </div>
+                        <span id="manaTextMobile" class="font-orbitron font-bold text-[10px] text-white shrink-0">25/100</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] font-orbitron border-l border-slate-800 pl-2 shrink-0">
+                        <span title="Obrażenia Kuli" class="text-rose-400 font-bold"><i class="fa-solid fa-burst mr-0.5"></i><span id="statDamageMobile">1</span></span>
+                        <span title="Szansa Krytyczna" class="text-amber-300 font-bold"><i class="fa-solid fa-crosshairs mr-0.5"></i><span id="statCritMobile">5%</span></span>
+                        <span title="Aktywne Kule" class="text-emerald-400 font-bold"><i class="fa-solid fa-circle mr-0.5 text-[8px]"></i><span id="statBallsMobile">1</span></span>
+                    </div>
+                </div>
+
+                <!-- Mobile 4 Quick Skill Buttons (Side-by-side right under the Arena!) -->
+                <div id="skillsContainerMobile" class="grid grid-cols-4 gap-1.5 w-full"></div>
+
+                <!-- Mobile Paddle Controls (Buttons + Touch Trackpad) -->
+                <div class="grid grid-cols-12 gap-1.5 w-full touch-none-select">
+                    <button id="btnMobileLeft" class="col-span-3 cyber-panel py-2.5 rounded-xl active:bg-cyan-500/25 active:border-cyan-400 text-cyan-300 font-bold flex items-center justify-center transition">
+                        <i class="fa-solid fa-chevron-left text-lg"></i>
+                    </button>
+                    <div id="mobileTouchPad" class="col-span-6 cyber-panel py-2 px-2 rounded-xl active:bg-amber-500/20 border-dashed border-cyan-500/40 flex flex-col items-center justify-center text-center cursor-pointer">
+                        <span class="font-orbitron font-bold text-[11px] text-amber-400 leading-tight flex items-center gap-1.5">
+                            <i class="fa-solid fa-rocket text-[10px]"></i> START / DOTYK
+                        </span>
+                        <span class="text-[9px] text-slate-400 leading-none mt-0.5">Przesuwaj palcem tu lub po planszy</span>
+                    </div>
+                    <button id="btnMobileRight" class="col-span-3 cyber-panel py-2.5 rounded-xl active:bg-cyan-500/25 active:border-cyan-400 text-cyan-300 font-bold flex items-center justify-center transition">
+                        <i class="fa-solid fa-chevron-right text-lg"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- RIGHT COLUMN: Relics Inventory & Brick Legend -->
-        <div class="lg:col-span-3 flex flex-col gap-3 order-3">
+        <div class="lg:col-span-3 flex flex-col gap-2 md:gap-3 order-3 w-full max-w-[496px] lg:max-w-none mx-auto">
             <!-- RELICS INVENTORY -->
-            <div class="cyber-panel rounded-xl p-3 flex flex-col flex-1 min-h-[240px]">
+            <div class="cyber-panel rounded-xl p-2.5 md:p-3 flex flex-col flex-1 lg:min-h-[240px]">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
                     <span class="text-xs font-orbitron font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-gem"></i> AKTYWNE RELIKTY PASYWNE
@@ -276,15 +341,15 @@
                     <span id="relicCountBadge" class="text-xs font-orbitron bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">0</span>
                 </div>
 
-                <div id="relicsList" class="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
-                    <div class="text-xs text-slate-500 italic text-center py-8">
+                <div id="relicsList" class="flex flex-col gap-1.5 md:gap-2 max-h-[180px] lg:max-h-[280px] overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-4 lg:py-8">
                         Oczyść pierwszy sektor, aby zainstalować swój pierwszy moduł bojowy lub relikt.
                     </div>
                 </div>
             </div>
 
             <!-- BRICK & CAPSULE LEGEND -->
-            <div class="cyber-panel rounded-xl p-3">
+            <div class="cyber-panel rounded-xl p-2.5 md:p-3">
                 <div class="text-xs font-orbitron font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-1 mb-2">
                     CEGŁY I KAPSUŁY SPECJALNE
                 </div>
@@ -326,8 +391,8 @@
     <footer class="max-w-6xl w-full mx-auto mt-2 hidden md:block">
         <div class="cyber-panel rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400">
             <div class="flex items-center gap-4">
-                <span><strong class="text-cyan-400 font-orbitron">MYSZ / STRZAŁKI / A-D:</strong> Ruch Paletki</span>
-                <span><strong class="text-cyan-400 font-orbitron">LPM / SPACJA:</strong> Wystrzelenie Kuli</span>
+                <span><strong class="text-cyan-400 font-orbitron">MYSZ / DOTYK / STRZAŁKI / A-D:</strong> Ruch Paletki</span>
+                <span><strong class="text-cyan-400 font-orbitron">LPM / DOTKNIĘCIE / SPACJA:</strong> Wystrzelenie Kuli</span>
             </div>
             <div class="flex items-center gap-4">
                 <span><strong class="text-purple-400 font-orbitron">KLAWISZE 1 - 4:</strong> Użycie odblokowanych modułów bojowych</span>
@@ -339,35 +404,35 @@
     <!-- ================= MODALS ================= -->
 
     <!-- DRAFT / ROGUELIKE UPGRADE MODAL -->
-    <div id="draftModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="max-w-4xl w-full cyber-panel rounded-2xl p-6 border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(0,243,255,0.2)] max-h-[95vh] overflow-y-auto">
-            <div class="text-center mb-5">
-                <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400 text-cyan-300 font-orbitron text-xs font-bold mb-2">
+    <div id="draftModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4">
+        <div class="max-w-4xl w-full cyber-panel rounded-2xl p-3.5 sm:p-6 border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(0,243,255,0.2)] max-h-[96dvh] overflow-y-auto">
+            <div class="text-center mb-3 sm:mb-5">
+                <div class="inline-block px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400 text-cyan-300 font-orbitron text-[10px] sm:text-xs font-bold mb-1 sm:mb-2">
                     SEKTOR OCZYSZCZONY!
                 </div>
-                <h2 class="font-orbitron font-black text-2xl md:text-3xl text-white tracking-wider uppercase neon-text-cyan">
+                <h2 class="font-orbitron font-black text-lg sm:text-2xl md:text-3xl text-white tracking-wider uppercase neon-text-cyan">
                     ZBROJOWNIA NEON BREAKER
                 </h2>
-                <p class="text-slate-400 text-sm mt-1">Odblokuj nowy moduł bojowy (sloty 1-4), ulepsz posiadany lub zainstaluj pasywny relikt.</p>
+                <p class="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1">Odblokuj nowy moduł bojowy (sloty 1-4), ulepsz posiadany lub zainstaluj pasywny relikt.</p>
             </div>
 
             <!-- 3 Cards Container -->
-            <div id="draftCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"></div>
+            <div id="draftCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-4 mb-3.5 sm:mb-6"></div>
 
             <!-- Shop Actions -->
-            <div class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-4">
-                <div class="flex items-center gap-2 text-amber-400 font-orbitron font-bold">
-                    <i class="fa-solid fa-coins"></i> Twoje Złoto: <span id="draftGoldDisplay">0</span> Zł
+            <div class="flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 border-t border-slate-800 pt-3 sm:pt-4">
+                <div class="flex items-center gap-1.5 text-amber-400 font-orbitron font-bold text-xs sm:text-base">
+                    <i class="fa-solid fa-coins"></i> Złoto: <span id="draftGoldDisplay">0</span> Zł
                 </div>
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <button id="rerollBtn" onclick="game.rerollDraft()" class="skill-btn px-3.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5">
+                    <button id="rerollBtn" onclick="game.rerollDraft()" class="skill-btn px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 font-orbitron text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-dice"></i> Przelosuj (<span id="rerollCostText">18</span> Zł)
                     </button>
-                    <button id="buyManaBtn" onclick="game.buyFullMana()" class="skill-btn px-3.5 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400 text-cyan-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
-                        <i class="fa-solid fa-bolt"></i> Pełna Energia (<span id="buyManaCostText">20</span> Zł)
+                    <button id="buyManaBtn" onclick="game.buyFullMana()" class="skill-btn px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400 text-cyan-300 font-orbitron text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt"></i> Pełna MP (<span id="buyManaCostText">20</span> Zł)
                     </button>
-                    <button id="buyHpBtn" onclick="game.buyRepairHp()" class="skill-btn px-3.5 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400 text-rose-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
-                        <i class="fa-solid fa-heart-pulse"></i> Naprawa +1 HP (<span id="buyHpCostText">35</span> Zł)
+                    <button id="buyHpBtn" onclick="game.buyRepairHp()" class="skill-btn px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400 text-rose-300 font-orbitron text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-heart-pulse"></i> +1 HP (<span id="buyHpCostText">35</span> Zł)
                     </button>
                 </div>
             </div>
@@ -427,7 +492,7 @@
             <div class="space-y-4 text-sm text-slate-300">
                 <div>
                     <h4 class="font-orbitron font-bold text-cyan-400 text-xs uppercase mb-1">1. Sterowanie i Fizyka Odbić</h4>
-                    <p>Poruszaj paletką za pomocą <strong>Myszy</strong> lub klawiszy <strong>Strzałek / A-D</strong>. Kliknij <strong>LPM</strong> lub naciśnij <strong>Spację</strong>, aby wystrzelić kulę. Miejsce uderzenia w paletkę pozwala kontrolować kąt odbicia!</p>
+                    <p>Poruszaj paletką za pomocą <strong>Myszy</strong>, klawiszy <strong>Strzałek / A-D</strong>, a na telefonie <strong>przesuwając palcem bezpośrednio po planszy / panelu dotykowym</strong> lub używając przycisków bocznych. Kliknij <strong>LPM / START</strong> lub naciśnij <strong>Spację</strong>, aby wystrzelić kulę. Miejsce uderzenia w paletkę pozwala kontrolować kąt odbicia!</p>
                 </div>
                 <div>
                     <h4 class="font-orbitron font-bold text-emerald-400 text-xs uppercase mb-1">2. Odblokowywanie Modułów Bojowych (Sloty 1-4)</h4>
@@ -511,6 +576,7 @@
             laser_cannons: {
                 id: 'laser_cannons',
                 name: 'Działa Fotonowe',
+                shortName: 'Lasery',
                 icon: 'fa-gun',
                 color: 'text-red-400',
                 bgBox: 'bg-red-500/10 border-red-500/40',
@@ -527,6 +593,7 @@
             multiball: {
                 id: 'multiball',
                 name: 'Matryca Multiball',
+                shortName: 'Multiball',
                 icon: 'fa-braille',
                 color: 'text-cyan-400',
                 bgBox: 'bg-cyan-500/10 border-cyan-500/40',
@@ -556,6 +623,7 @@
             plasma_balls: {
                 id: 'plasma_balls',
                 name: 'Kule Plazmowe',
+                shortName: 'Plazma',
                 icon: 'fa-fire',
                 color: 'text-amber-400',
                 bgBox: 'bg-amber-500/10 border-amber-500/40',
@@ -572,6 +640,7 @@
             missile_barrage: {
                 id: 'missile_barrage',
                 name: 'Salwa Rakietowa',
+                shortName: 'Rakiety',
                 icon: 'fa-rocket',
                 color: 'text-orange-400',
                 bgBox: 'bg-orange-500/10 border-orange-500/40',
@@ -598,6 +667,7 @@
             floor_shield: {
                 id: 'floor_shield',
                 name: 'Bariera Dna',
+                shortName: 'Bariera',
                 icon: 'fa-shield-halved',
                 color: 'text-emerald-400',
                 bgBox: 'bg-emerald-500/10 border-emerald-500/40',
@@ -614,6 +684,7 @@
             emp_nova: {
                 id: 'emp_nova',
                 name: 'Impuls EMP',
+                shortName: 'EMP',
                 icon: 'fa-burst',
                 color: 'text-purple-400',
                 bgBox: 'bg-purple-500/10 border-purple-500/40',
@@ -639,6 +710,7 @@
             magnet_paddle: {
                 id: 'magnet_paddle',
                 name: 'Pole Magnetyczne',
+                shortName: 'Magnes',
                 icon: 'fa-magnet',
                 color: 'text-sky-400',
                 bgBox: 'bg-sky-500/10 border-sky-500/40',
@@ -655,6 +727,7 @@
             supernova: {
                 id: 'supernova',
                 name: 'Ładunek Supernowy',
+                shortName: 'Supernowa',
                 icon: 'fa-explosion',
                 color: 'text-pink-400',
                 bgBox: 'bg-pink-500/10 border-pink-500/40',
@@ -890,10 +963,14 @@
                     this.state = 'PAUSED';
                     document.getElementById('pauseOverlay').classList.remove('hidden');
                     document.getElementById('pauseIcon').className = 'fa-solid fa-play';
+                    const pm = document.getElementById('pauseIconMobile');
+                    if (pm) pm.className = 'fa-solid fa-play';
                 } else if (this.state === 'PAUSED') {
                     this.state = 'PLAYING';
                     document.getElementById('pauseOverlay').classList.add('hidden');
                     document.getElementById('pauseIcon').className = 'fa-solid fa-pause';
+                    const pm = document.getElementById('pauseIconMobile');
+                    if (pm) pm.className = 'fa-solid fa-pause';
                     this.lastTime = performance.now();
                 }
                 this.updateUI();
@@ -1238,59 +1315,97 @@
 
             renderSkillSlots() {
                 const container = document.getElementById('skillsContainer');
-                if (!container) return;
-                container.innerHTML = '';
-                document.getElementById('skillSlotsCountBadge').textContent = `${this.unlockedSkills.length} / 4`;
+                const mobileContainer = document.getElementById('skillsContainerMobile');
+                if (container) container.innerHTML = '';
+                if (mobileContainer) mobileContainer.innerHTML = '';
+                const countBadge = document.getElementById('skillSlotsCountBadge');
+                if (countBadge) countBadge.textContent = `${this.unlockedSkills.length} / 4`;
 
                 for (let i = 0; i < 4; i++) {
                     const slotNum = i + 1;
                     const slotObj = this.unlockedSkills[i];
 
                     if (!slotObj) {
-                        const emptyEl = document.createElement('div');
-                        emptyEl.className = 'w-full bg-slate-950/60 border border-dashed border-slate-800 rounded-lg p-2.5 flex items-center justify-between opacity-65';
-                        emptyEl.innerHTML = `
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
-                                    <i class="fa-solid fa-lock"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-900 text-slate-500 rounded border border-slate-800">[${slotNum}]</span>
-                                        <span class="font-bold text-xs text-slate-500 font-orbitron">PUSTY SLOT</span>
+                        if (container) {
+                            const emptyEl = document.createElement('div');
+                            emptyEl.className = 'w-full bg-slate-950/60 border border-dashed border-slate-800 rounded-lg p-2.5 flex items-center justify-between opacity-65';
+                            emptyEl.innerHTML = `
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+                                        <i class="fa-solid fa-lock"></i>
                                     </div>
-                                    <div class="text-[10px] text-slate-600 leading-tight">Odblokuj w Zbrojowni po sektorze</div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-900 text-slate-500 rounded border border-slate-800">[${slotNum}]</span>
+                                            <span class="font-bold text-xs text-slate-500 font-orbitron">PUSTY SLOT</span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-600 leading-tight">Odblokuj w Zbrojowni po sektorze</div>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
-                        container.appendChild(emptyEl);
+                            `;
+                            container.appendChild(emptyEl);
+                        }
+                        if (mobileContainer) {
+                            const emptyMob = document.createElement('div');
+                            emptyMob.className = 'bg-slate-950/60 border border-dashed border-slate-800 rounded-xl p-1.5 flex flex-col items-center justify-center opacity-55 min-h-[54px] text-center';
+                            emptyMob.innerHTML = `
+                                <div class="text-[9px] font-orbitron text-slate-500 font-bold">[${slotNum}] <i class="fa-solid fa-lock text-[8px] ml-0.5"></i></div>
+                                <div class="text-[9px] font-orbitron text-slate-600 mt-0.5">PUSTY</div>
+                            `;
+                            mobileContainer.appendChild(emptyMob);
+                        }
                     } else {
                         const def = SKILL_CATALOG[slotObj.id];
                         const cost = this.getSkillCost(def, slotObj.level);
-                        const btn = document.createElement('button');
-                        btn.id = `skillBtn${slotNum}`;
-                        btn.onclick = () => this.useSkill(slotNum);
-                        btn.className = 'skill-btn w-full text-left bg-slate-900/90 border border-slate-700/80 rounded-lg p-2.5 flex items-center justify-between group';
-                        btn.innerHTML = `
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-9 h-9 rounded-lg ${def.bgBox} border flex items-center justify-center ${def.color} font-bold text-base shrink-0">
-                                    <i class="fa-solid ${def.icon}"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-800 text-cyan-300 rounded border border-slate-600">[${slotNum}]</span>
-                                        <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">${def.name}</span>
-                                        <span class="text-[9px] font-orbitron px-1 py-0.1 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">Poz.${slotObj.level}</span>
+
+                        if (container) {
+                            const btn = document.createElement('button');
+                            btn.id = `skillBtn${slotNum}`;
+                            btn.onclick = () => this.useSkill(slotNum);
+                            btn.className = 'skill-btn w-full text-left bg-slate-900/90 border border-slate-700/80 rounded-lg p-2.5 flex items-center justify-between group';
+                            btn.innerHTML = `
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-lg ${def.bgBox} border flex items-center justify-center ${def.color} font-bold text-base shrink-0">
+                                        <i class="fa-solid ${def.icon}"></i>
                                     </div>
-                                    <div class="text-[11px] text-slate-400 leading-tight">${def.getDesc(slotObj.level)}</div>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-800 text-cyan-300 rounded border border-slate-600">[${slotNum}]</span>
+                                            <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">${def.name}</span>
+                                            <span class="text-[9px] font-orbitron px-1 py-0.1 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">Poz.${slotObj.level}</span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400 leading-tight">${def.getDesc(slotObj.level)}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="text-right shrink-0 ml-1">
-                                <span class="font-orbitron font-bold text-xs text-cyan-400 block" id="skillCost${slotNum}">${cost} MP</span>
-                                <span id="skillCd${slotNum}" class="hidden text-[10px] text-amber-400 font-orbitron font-bold"></span>
-                            </div>
-                        `;
-                        container.appendChild(btn);
+                                <div class="text-right shrink-0 ml-1">
+                                    <span class="font-orbitron font-bold text-xs text-cyan-400 block" id="skillCost${slotNum}">${cost} MP</span>
+                                    <span id="skillCd${slotNum}" class="hidden text-[10px] text-amber-400 font-orbitron font-bold"></span>
+                                </div>
+                            `;
+                            container.appendChild(btn);
+                        }
+
+                        if (mobileContainer) {
+                            const mobBtn = document.createElement('button');
+                            mobBtn.id = `skillBtnMobile${slotNum}`;
+                            mobBtn.onclick = () => this.useSkill(slotNum);
+                            mobBtn.className = 'skill-btn relative bg-slate-900/95 border border-slate-700/90 rounded-xl p-1.5 flex flex-col items-center justify-between min-h-[54px] text-center touch-none-select';
+                            mobBtn.innerHTML = `
+                                <div class="w-full flex items-center justify-between text-[8px] font-orbitron leading-none">
+                                    <span class="text-slate-400">[${slotNum}]</span>
+                                    <span class="px-1 py-0.2 bg-cyan-500/20 text-cyan-300 rounded">P.${slotObj.level}</span>
+                                </div>
+                                <div class="my-0.5 flex items-center gap-1 ${def.color} font-bold text-xs leading-tight">
+                                    <i class="fa-solid ${def.icon}"></i>
+                                    <span class="text-[10px] text-white font-orbitron truncate max-w-[54px]">${def.shortName || def.name}</span>
+                                </div>
+                                <div class="w-full text-center leading-none">
+                                    <span id="skillCostMobile${slotNum}" class="font-orbitron font-bold text-[9px] text-cyan-400">${cost} MP</span>
+                                    <span id="skillCdMobile${slotNum}" class="hidden font-orbitron font-bold text-[9px] text-amber-400"></span>
+                                </div>
+                            `;
+                            mobileContainer.appendChild(mobBtn);
+                        }
                     }
                 }
             }
@@ -1413,22 +1528,22 @@
 
                 this.currentDraftChoices.forEach((cardData, index) => {
                     const card = document.createElement('div');
-                    card.className = 'card-choice cyber-panel rounded-xl p-5 flex flex-col justify-between cursor-pointer border border-slate-700 hover:border-cyan-400 bg-slate-900/90';
+                    card.className = 'card-choice cyber-panel rounded-xl p-3 sm:p-5 flex flex-col justify-between cursor-pointer border border-slate-700 hover:border-cyan-400 bg-slate-900/90';
                     card.onclick = () => this.selectDraftCard(index);
                     card.innerHTML = `
                         <div>
-                            <div class="flex items-start justify-between gap-2 mb-4">
-                                <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center ${cardData.color} text-2xl shadow-md shrink-0">
+                            <div class="flex items-center sm:items-start justify-between gap-2 mb-2 sm:mb-4">
+                                <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center ${cardData.color} text-lg sm:text-2xl shadow-md shrink-0">
                                     <i class="fa-solid ${cardData.icon}"></i>
                                 </div>
-                                <span class="text-[10px] font-orbitron px-2 py-0.5 rounded border font-bold text-right ${cardData.badgeClass}">
+                                <span class="text-[9px] sm:text-[10px] font-orbitron px-2 py-0.5 rounded border font-bold text-right ${cardData.badgeClass}">
                                     ${cardData.badgeText}
                                 </span>
                             </div>
-                            <h3 class="font-orbitron font-bold text-base text-white mb-2">${cardData.name}</h3>
-                            <p class="text-xs text-slate-300 leading-relaxed">${cardData.desc}</p>
+                            <h3 class="font-orbitron font-bold text-sm sm:text-base text-white mb-1 sm:mb-2">${cardData.name}</h3>
+                            <p class="text-[11px] sm:text-xs text-slate-300 leading-relaxed">${cardData.desc}</p>
                         </div>
-                        <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-orbitron text-cyan-400 font-bold">
+                        <div class="mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] sm:text-xs font-orbitron text-cyan-400 font-bold">
                             <span>ZAINSTALUJ</span>
                             <i class="fa-solid fa-arrow-right"></i>
                         </div>
@@ -1613,37 +1728,67 @@
                     document.getElementById('progressNumbers').textContent = `${this.bricks.length} CEGIEŁ`;
                 }
 
-                // Mana
+                // Mana (Desktop & Mobile)
                 const manaPct = Math.min(100, Math.floor((this.mana / this.maxMana) * 100));
                 document.getElementById('manaBar').style.width = `${manaPct}%`;
                 document.getElementById('manaText').textContent = `${Math.floor(this.mana)} / ${this.maxMana}`;
+                const manaBarMob = document.getElementById('manaBarMobile');
+                const manaTextMob = document.getElementById('manaTextMobile');
+                if (manaBarMob) manaBarMob.style.width = `${manaPct}%`;
+                if (manaTextMob) manaTextMob.textContent = `${Math.floor(this.mana)}/${this.maxMana}`;
 
-                // Parametry boczne
-                document.getElementById('statDamage').textContent = `${this.mods.ballDamage + (this.plasmaTimer > 0 ? 1 : 0)} PKT`;
+                // Parametry boczne (Desktop & Mobile)
+                const curDmg = this.mods.ballDamage + (this.plasmaTimer > 0 ? 1 : 0);
+                const curCrit = Math.round(this.mods.critChance * 100);
+                document.getElementById('statDamage').textContent = `${curDmg} PKT`;
                 document.getElementById('statPaddle').textContent = `${Math.round(this.mods.paddleWidthMult * 100)}%`;
-                document.getElementById('statCrit').textContent = `${Math.round(this.mods.critChance * 100)}%`;
+                document.getElementById('statCrit').textContent = `${curCrit}%`;
                 document.getElementById('statBalls').textContent = `${this.balls.length}`;
 
-                // Sloty umiejętności
+                const dmgMob = document.getElementById('statDamageMobile');
+                const critMob = document.getElementById('statCritMobile');
+                const ballsMob = document.getElementById('statBallsMobile');
+                if (dmgMob) dmgMob.textContent = `${curDmg}`;
+                if (critMob) critMob.textContent = `${curCrit}%`;
+                if (ballsMob) ballsMob.textContent = `${this.balls.length}`;
+
+                // Sloty umiejętności (Desktop & Mobile)
                 for (let i = 0; i < this.unlockedSkills.length; i++) {
                     const slotNum = i + 1;
                     const slotObj = this.unlockedSkills[i];
                     const def = SKILL_CATALOG[slotObj.id];
                     const cost = this.getSkillCost(def, slotObj.level);
+                    const isDisabled = (this.mana < cost || slotObj.cooldown > 0 || this.state !== 'PLAYING');
 
                     const btn = document.getElementById(`skillBtn${slotNum}`);
                     const costEl = document.getElementById(`skillCost${slotNum}`);
                     const cdEl = document.getElementById(`skillCd${slotNum}`);
-                    if (!btn || !costEl || !cdEl) continue;
-
-                    costEl.textContent = `${cost} MP`;
-                    if (slotObj.cooldown > 0) {
-                        cdEl.textContent = `${(slotObj.cooldown / 1000).toFixed(1)}s`;
-                        cdEl.classList.remove('hidden');
-                    } else {
-                        cdEl.classList.add('hidden');
+                    if (btn && costEl && cdEl) {
+                        costEl.textContent = `${cost} MP`;
+                        if (slotObj.cooldown > 0) {
+                            cdEl.textContent = `${(slotObj.cooldown / 1000).toFixed(1)}s`;
+                            cdEl.classList.remove('hidden');
+                        } else {
+                            cdEl.classList.add('hidden');
+                        }
+                        btn.disabled = isDisabled;
                     }
-                    btn.disabled = (this.mana < cost || slotObj.cooldown > 0 || this.state !== 'PLAYING');
+
+                    const mobBtn = document.getElementById(`skillBtnMobile${slotNum}`);
+                    const mobCostEl = document.getElementById(`skillCostMobile${slotNum}`);
+                    const mobCdEl = document.getElementById(`skillCdMobile${slotNum}`);
+                    if (mobBtn && mobCostEl && mobCdEl) {
+                        mobCostEl.textContent = `${cost} MP`;
+                        if (slotObj.cooldown > 0) {
+                            mobCdEl.textContent = `${(slotObj.cooldown / 1000).toFixed(1)}s`;
+                            mobCdEl.classList.remove('hidden');
+                            mobCostEl.classList.add('hidden');
+                        } else {
+                            mobCdEl.classList.add('hidden');
+                            mobCostEl.classList.remove('hidden');
+                        }
+                        mobBtn.disabled = isDisabled;
+                    }
                 }
             }
 
@@ -2123,18 +2268,83 @@
             }
 
             bindEvents() {
-                // Ruch myszą po planszy
-                this.canvas.addEventListener('mousemove', (e) => {
+                const movePaddleToClientX = (clientX) => {
                     if (this.state !== 'PLAYING') return;
                     const rect = this.canvas.getBoundingClientRect();
+                    if (!rect.width) return;
                     const scaleX = this.canvas.width / rect.width;
-                    const mouseX = (e.clientX - rect.left) * scaleX;
-                    this.paddle.x = Math.max(8, Math.min(this.canvas.width - this.paddle.w - 8, mouseX - this.paddle.w / 2));
+                    const posX = (clientX - rect.left) * scaleX;
+                    this.paddle.x = Math.max(8, Math.min(this.canvas.width - this.paddle.w - 8, posX - this.paddle.w / 2));
+                };
+
+                // Ruch myszą oraz dotykiem bezpośrednio po planszy
+                this.canvas.addEventListener('pointermove', (e) => {
+                    if (e.pointerType === 'mouse' || e.buttons > 0 || e.pointerType === 'touch') {
+                        movePaddleToClientX(e.clientX);
+                    }
                 });
 
-                this.canvas.addEventListener('mousedown', () => {
-                    if (this.state === 'PLAYING') this.launchBalls();
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    if (e.pointerType === 'touch') {
+                        try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
+                        movePaddleToClientX(e.clientX);
+                    }
+                    this.launchBalls();
                 });
+
+                // Panel dotykowy (Trackpad + Start Kuli) pod planszą na telefonach
+                const touchPad = document.getElementById('mobileTouchPad');
+                if (touchPad) {
+                    let padDragging = false;
+                    let lastPadX = 0;
+
+                    touchPad.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        if (this.state !== 'PLAYING') return;
+                        padDragging = true;
+                        lastPadX = e.clientX;
+                        try { touchPad.setPointerCapture(e.pointerId); } catch (_) {}
+                        this.launchBalls();
+                    });
+
+                    touchPad.addEventListener('pointermove', (e) => {
+                        if (!padDragging || this.state !== 'PLAYING') return;
+                        const rect = touchPad.getBoundingClientRect();
+                        if (!rect.width) return;
+                        const dx = e.clientX - lastPadX;
+                        lastPadX = e.clientX;
+                        const scale = (this.canvas.width / rect.width) * 1.1;
+                        this.paddle.x = Math.max(8, Math.min(this.canvas.width - this.paddle.w - 8, this.paddle.x + dx * scale));
+                    });
+
+                    const endPadDrag = () => { padDragging = false; };
+                    touchPad.addEventListener('pointerup', endPadDrag);
+                    touchPad.addEventListener('pointercancel', endPadDrag);
+                    touchPad.addEventListener('contextmenu', (e) => e.preventDefault());
+                }
+
+                // Przyciski kierunkowe na telefonie (Lewo / Prawo)
+                const bindHoldButton = (btnId, dirKey) => {
+                    const btn = document.getElementById(btnId);
+                    if (!btn) return;
+                    const startHold = (e) => {
+                        e.preventDefault();
+                        this.keys[dirKey] = true;
+                        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+                    };
+                    const stopHold = (e) => {
+                        if (e) e.preventDefault();
+                        this.keys[dirKey] = false;
+                    };
+                    btn.addEventListener('pointerdown', startHold);
+                    btn.addEventListener('pointerup', stopHold);
+                    btn.addEventListener('pointercancel', stopHold);
+                    btn.addEventListener('pointerleave', stopHold);
+                    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+                };
+                bindHoldButton('btnMobileLeft', 'left');
+                bindHoldButton('btnMobileRight', 'right');
 
                 window.addEventListener('keydown', (e) => {
                     if (e.code === 'KeyP' || e.code === 'Escape') {
